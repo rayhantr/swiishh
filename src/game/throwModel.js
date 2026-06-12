@@ -1,4 +1,4 @@
-import { THROW, COURT } from '../config.js';
+import { THROW, COURT, ASSIST } from '../config.js';
 import { v3, clamp, lerp } from '../core/math.js';
 
 /**
@@ -29,10 +29,13 @@ export function computeLaunch(flick, pos, assist = 0) {
     const disc = vy * vy - 2 * g * dy;
     if (disc > 0) {
       // Time of the descending crossing of rim height, then the velocity
-      // that would land dead center — with ~4.5 % padding for air drag.
+      // that would land dead center. Drag steals a fraction of range that
+      // grows with flight time, so the padding scales with t (calibrated —
+      // see ASSIST.DRAG_PAD_PER_S).
       const t = (vy + Math.sqrt(disc)) / g;
-      const vzIdeal = ((COURT.RIM_CENTER.z - pos.z) / t) * 1.055;
-      const vxIdeal = (COURT.RIM_CENTER.x - pos.x) / t;
+      const pad = 1 + ASSIST.DRAG_PAD_PER_S * t;
+      const vzIdeal = ((COURT.RIM_CENTER.z - pos.z) / t) * pad;
+      const vxIdeal = ((COURT.RIM_CENTER.x - pos.x) / t) * pad;
       vz = lerp(vz, vzIdeal, assist);
       vx = lerp(vx, vxIdeal, assist);
     }

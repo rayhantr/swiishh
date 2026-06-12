@@ -179,7 +179,10 @@ export class Game {
 
   #throw(flick) {
     this.history.length = 0;
-    if (flick.y < THROW.MIN_UP_FLICK) return this.#drop(flick);
+    if (flick.y < THROW.MIN_UP_FLICK) {
+      this.hud.message('TOO SOFT', 'flick up faster as you let go', 1600);
+      return this.#drop(flick);
+    }
 
     const ball = this.world.ball;
     const { vel, spin } = computeLaunch(flick, ball.pos, this.assist);

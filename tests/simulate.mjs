@@ -10,7 +10,7 @@
  *
  * Exits non-zero on failure, so it works as a CI gate.
  */
-import { PHYSICS, COURT, THROW } from '../src/config.js';
+import { PHYSICS, COURT, THROW, ASSIST } from '../src/config.js';
 import { World } from '../src/physics/world.js';
 import { computeLaunch } from '../src/game/throwModel.js';
 import { measureFlick } from '../src/game/flickMeter.js';
@@ -81,22 +81,31 @@ const check = (label, ok, detail = '') => {
 {
   // "Reasonable" = arcs whose peak actually clears the rim (~5.6+ m/s);
   // flatter flicks are SUPPOSED to miss short — that's the skill loop.
-  console.log('\nAssisted sweep (assist = 0.55, flicks 5.6–7.2 m/s):');
+  console.log(`\nAssisted sweep (camera assist = ${ASSIST.CAMERA}, flicks 5.6–7.2 m/s):`);
   let makes = 0, total = 0;
-  for (let f = 5.6; f <= 7.2; f += 0.2) {
+  for (let f = 5.6; f <= 7.21; f += 0.1) {
     total++;
-    const r = simulateShot({ x: 0, y: f }, 0.55);
-    console.log(`    flick ${f.toFixed(1)} → ${r.outcome === 'score' ? (r.swish ? 'SWISH' : 'score') : r.outcome}`);
+    const r = simulateShot({ x: 0, y: f }, ASSIST.CAMERA);
     if (r.outcome === 'score') makes++;
   }
-  check('assist makes most reasonable flicks', makes / total >= 0.6, `${makes}/${total} made`);
+  check('camera assist makes most reasonable flicks', makes / total >= 0.7, `${makes}/${total} made`);
+
+  let pMakes = 0, pTotal = 0;
+  for (let f = 5.6; f <= 7.21; f += 0.1) {
+    pTotal++;
+    if (simulateShot({ x: 0, y: f }, ASSIST.POINTER).outcome === 'score') pMakes++;
+  }
+  check('pointer assist gives a workable window', pMakes / pTotal >= 0.4, `${pMakes}/${pTotal} made`);
 }
 
 // ── 4. assist must not rescue bad aim ───────────────────────────────────
 {
-  const wild = simulateShot({ x: 3.5, y: 6.0 }, 0.55);
+  const wild = simulateShot({ x: 3.5, y: 6.0 }, ASSIST.CAMERA);
   check('hard sideways flick still misses with assist', wild.outcome !== 'score',
     `outcome: ${wild.outcome}`);
+  const flat = simulateShot({ x: 0, y: 4.6 }, ASSIST.CAMERA);
+  check('flat flick still dies short with assist', flat.outcome !== 'score',
+    `outcome: ${flat.outcome}`);
 }
 
 // ── 5. flick meter (release-latency compensation) ───────────────────────

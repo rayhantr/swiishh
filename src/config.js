@@ -87,8 +87,13 @@ export const THROW = {
  *  no-drag ballistic solution for the player's chosen arc (vertical speed is
  *  never assisted — arc is always honest). 0 = raw physics, 1 = aimbot. */
 export const ASSIST = {
-  CAMERA: 0.55,              // hand tracking is noisy → more help
-  POINTER: 0.25,
+  CAMERA: 0.65,              // hand tracking is noisy → more help
+  POINTER: 0.35,
+  DRAG_PAD_PER_S: 0.105,     // fractional forward-speed padding per second of
+                             // flight, offsetting air drag. Calibrated against
+                             // the shipped aerodynamics (probe: vz needed to
+                             // land dead-center vs the no-drag solution gives
+                             // (pad−1)/t ≈ 0.105 across all playable arcs).
 };
 
 export const GESTURE = {
