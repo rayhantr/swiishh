@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c0e13" />
+  <title>SWISH — hand-tracked streetball</title>
+  <meta name="description" content="A free-throw game you play by pinching and flicking your hand in front of your camera. Real ball physics, zero install." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23f0691f'/><path d='M8 50h84M50 8v84' stroke='%233c1608' stroke-width='5' fill='none'/></svg>" />
+</head>
+<body>
+  <canvas id="game" aria-label="Basketball court"></canvas>
+  <!-- hidden camera feed consumed by MediaPipe; the PiP canvas is its visible face -->
+  <video id="cam" playsinline muted aria-hidden="true"></video>
+
+  <div id="hud">
+    <!-- top chrome -->
+    <header class="topbar">
+      <div class="brand" aria-hidden="true">SWISH<span class="brand-dot">.</span></div>
+
+      <div class="scoreboard" role="status" aria-label="Scoreboard">
+        <div class="stat"><span class="stat-label">score</span><span class="stat-value" id="score">0</span></div>
+        <div class="stat"><span class="stat-label">streak</span><span class="stat-value" id="streak">0</span></div>
+        <div class="stat"><span class="stat-label">acc</span><span class="stat-value" id="accuracy">0%</span></div>
+        <div class="stat"><span class="stat-label">best</span><span class="stat-value" id="highScore">0</span></div>
+      </div>
+
+      <nav class="controls">
+        <button id="btnSwitchCam" class="icon-btn hidden" title="Switch camera">🔄</button>
+        <button id="btnMirror" class="icon-btn hidden" title="Mirror view">🪞</button>
+        <button id="btnHelp" class="icon-btn" title="How to play (H)">?</button>
+        <button id="btnMute" class="icon-btn" title="Sound (M)">🔊</button>
+        <button id="btnPause" class="icon-btn" title="Pause (P / Esc)">⏸</button>
+        <button id="btnMenu" class="icon-btn" title="Back to menu">☰</button>
+      </nav>
+    </header>
+
+    <!-- center coaching message -->
+    <div id="message" aria-live="polite">
+      <div id="messageMain"></div>
+      <div id="messageSub"></div>
+    </div>
+
+    <!-- camera picture-in-picture -->
+    <div id="pip" class="hidden">
+      <canvas id="pipCanvas" width="200" height="150"></canvas>
+      <div id="pipLabel">camera</div>
+    </div>
+
+    <div id="toasts"></div>
+
+    <!-- main menu -->
+    <div id="menu" class="overlay">
+      <div class="menu-card">
+        <h1 class="title">SWISH<span class="title-dot">.</span></h1>
+        <p class="tagline">midnight blacktop · hand-tracked free throws</p>
+
+        <div class="menu-buttons">
+          <button id="btnCamera" class="big-btn primary">
+            <span class="big-btn-icon">🖐</span>
+            <span class="big-btn-text">Play with camera<small>pinch · aim · flick</small></span>
+          </button>
+          <button id="btnPointer" class="big-btn">
+            <span class="big-btn-icon">👆</span>
+            <span class="big-btn-text">Mouse &amp; touch<small>drag &amp; flick — no camera</small></span>
+          </button>
+        </div>
+
+        <button id="btnAssist" class="toggle" data-on="true">
+          aim assist <span class="toggle-state">ON</span>
+        </button>
+
+        <p id="menuStatus" role="alert"></p>
+
+        <footer class="menu-foot">
+          <span>P pause</span><span>M mute</span><span>R new ball</span><span>H help</span>
+        </footer>
+      </div>
+    </div>
+
+    <!-- pause -->
+    <div id="pauseOverlay" class="overlay hidden">
+      <div class="menu-card slim">
+        <h2 class="title small">PAUSED</h2>
+        <div class="menu-buttons">
+          <button id="btnResume" class="big-btn primary"><span class="big-btn-text">Resume</span></button>
+          <button id="btnQuit" class="big-btn"><span class="big-btn-text">Main menu</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- help -->
+    <div id="help" class="overlay hidden">
+      <div class="menu-card">
+        <h2 class="title small">HOW TO PLAY</h2>
+        <div id="helpCamera" class="help-block">
+          <h3>🖐 Camera mode</h3>
+          <ol>
+            <li><strong>Show your hand</strong> — palm toward the camera, whole hand in frame.</li>
+            <li><strong>Pinch</strong> (thumb + index) or make a <strong>fist</strong> to grab the ball.</li>
+            <li><strong>Move</strong> your hand to aim — the ball follows.</li>
+            <li><strong>Flick up and open your hand</strong> to shoot. Flick speed sets power; a higher arc is more forgiving.</li>
+          </ol>
+          <p class="help-tip">Sit about an arm's length from the camera in decent light. If tracking is jumpy, slow down — the grab has hysteresis and won't drop the ball from jitter.</p>
+        </div>
+        <div id="helpPointer" class="help-block">
+          <h3>👆 Mouse &amp; touch</h3>
+          <ol>
+            <li><strong>Press on the ball</strong> to grab it.</li>
+            <li><strong>Drag</strong> to aim, then <strong>flick upward and release</strong> to shoot.</li>
+          </ol>
+        </div>
+        <div class="help-block">
+          <h3>🏀 The shot</h3>
+          <p class="help-tip">Scoring: <strong>+3</strong> for a swish, <strong>+2</strong> off the rim or glass. The ball has real drag and backspin — the Magnus effect lifts a well-spun shot, and soft arcs die on the front iron. Aim assist (toggle in the menu) only trims forward distance, never your arc or aim.</p>
+        </div>
+        <button id="btnCloseHelp" class="big-btn primary"><span class="big-btn-text">Got it</span></button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

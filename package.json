@@ -1,0 +1,13 @@
+{
+  "name": "swish",
+  "version": "1.0.0",
+  "description": "Hand-gesture basketball in the browser — MediaPipe hand tracking + a custom rigid-body ball sim. Zero build step, zero dependencies.",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "test": "node tests/simulate.mjs"
+  },
+  "keywords": ["basketball", "mediapipe", "hand-tracking", "gesture", "game", "canvas", "physics"],
+  "author": "Rayhan",
+  "license": "MIT"
+}
