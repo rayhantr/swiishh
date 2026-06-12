@@ -1,6 +1,7 @@
 import { HOLD, THROW, GAME, ASSIST, COURT, GESTURE } from '../config.js';
 import { v3, set, clamp, lerp, damp } from '../core/math.js';
 import { computeLaunch } from './throwModel.js';
+import { measureFlick } from './flickMeter.js';
 import { Stats } from './scoring.js';
 
 const SPAWN = v3(0, 1.55, HOLD.Z);
@@ -92,8 +93,15 @@ export class Game {
     if (!e.present) {
       this.cursor.present = false;
       if (this.phase === 'held') {
-        if (!this.handLostAt) this.handLostAt = performance.now();
-        else if (performance.now() - this.handLostAt > GESTURE.LOST_HAND_DROP_MS) {
+        // A hard flick often carries the hand out of frame (or motion-blurs
+        // past the tracker) before the release is seen. If the hand was
+        // moving upward like a throw, it WAS a throw — shoot immediately.
+        const flick = measureFlick(this.history, performance.now());
+        if (flick.y >= THROW.MIN_UP_FLICK * 1.5) {
+          this.#throw(flick);
+        } else if (!this.handLostAt) {
+          this.handLostAt = performance.now();
+        } else if (performance.now() - this.handLostAt > GESTURE.LOST_HAND_DROP_MS) {
           this.#drop();
           this.hud.toast('Hand left the frame — ball dropped');
         }
@@ -166,9 +174,11 @@ export class Game {
   }
 
   #release() {
-    const flick = this.#measureFlick();
-    this.history.length = 0;
+    this.#throw(measureFlick(this.history, performance.now()));
+  }
 
+  #throw(flick) {
+    this.history.length = 0;
     if (flick.y < THROW.MIN_UP_FLICK) return this.#drop(flick);
 
     const ball = this.world.ball;
@@ -185,23 +195,6 @@ export class Game {
     ball.held = false;
     set(ball.vel, flick.x * 0.6, Math.max(flick.y, 0) * 0.6, 0);
     this.phase = 'flight';
-  }
-
-  /** Average velocity over the trailing window — robust to per-frame noise. */
-  #measureFlick() {
-    const now = performance.now();
-    const h = this.history;
-    let oldest = null;
-    for (const sample of h) {
-      if (now - sample.t <= HOLD.VELOCITY_WINDOW_MS) { oldest = sample; break; }
-    }
-    const newest = h[h.length - 1];
-    if (!oldest || !newest || newest.t - oldest.t < 16) return { x: 0, y: 0 };
-    const dt = (newest.t - oldest.t) / 1000;
-    return {
-      x: clamp((newest.x - oldest.x) / dt, -14, 14),
-      y: clamp((newest.y - oldest.y) / dt, -14, 14),
-    };
   }
 
   #wireWorld() {

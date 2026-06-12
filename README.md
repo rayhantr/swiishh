@@ -64,8 +64,9 @@ Runs the exact shipped physics headlessly: checks floor restitution against the 
 - **Insecure context** (opened over `http://` on a LAN) → camera button disabled with an explanation; pointer mode still works.
 - **MediaPipe CDN unreachable** (offline) → graceful error, pointer mode unaffected.
 - **GPU delegate unsupported** (older devices/iOS) → automatic retry on CPU.
-- **Hand leaves the frame while holding** → grace period, then the ball drops with a toast (no phantom throws).
-- **Tracking jitter** → grab/release thresholds have hysteresis; flick velocity is averaged over a 90 ms window.
+- **Release detected late** (fast hands motion-blur; the pinch classifier lags the real release) → flick velocity is the *peak* over the recent history, not the velocity at the release event, so throws never read as fumbles.
+- **Hand flicks out of the frame mid-throw** → counted as the throw it was; only a slow drift out of frame drops the ball (after a grace period, with a toast).
+- **Tracking jitter** → grab/release thresholds have hysteresis; flick probes are 90 ms wide so single-frame noise can't spike the power.
 - **Tab hidden** → auto-pause; the fixed-timestep loop clamps frame gaps so physics never explodes after a stall.
 - **Ball stuck / rolled away** → auto-respawn on rest, out-of-bounds, or a 7 s shot timeout; `R` forces a new ball.
 - **Weak release** → the ball just slips out of your hand (not counted as an attempt).
@@ -97,7 +98,7 @@ Everything is SI units on a regulation court, tuned in [`src/config.js`](src/con
 
 **Net** ([`src/physics/net.js`](src/physics/net.js)): 10 verlet strands × 5 rings with stretch-only rope constraints in a diamond mesh. The ball pushes the cords; a drag cone below the rim stands in for the cords slowing the ball (one-way coupling = unconditionally stable).
 
-**The throw** ([`src/game/throwModel.js`](src/game/throwModel.js)): your flick is measured in the hold plane in m/s. Upward flick sets arc *and* adds forward power and backspin; sideways flick aims and adds sidespin (which genuinely curves the flight). A regulation free throw needs ~7 m/s at ~52° — the make window in the simulation sits exactly there.
+**The throw** ([`src/game/throwModel.js`](src/game/throwModel.js), [`src/game/flickMeter.js`](src/game/flickMeter.js)): your flick is measured in the hold plane in m/s — as the peak 90 ms window ending near the release, which compensates for the tracker reporting "hand opened" tens of milliseconds late. Upward flick sets arc *and* adds forward power and backspin; sideways flick aims and adds sidespin (which genuinely curves the flight). A regulation free throw needs ~7 m/s at ~52° — the make window in the simulation sits exactly there.
 
 **Scoring detection:** the ball center must cross the rim plane downward inside the ring (interpolated between substeps); swish = no rim/board contact during the live shot.
 
@@ -136,6 +137,7 @@ Design rules the codebase follows:
 | Change throw feel | `THROW.*`, `HOLD.SMOOTHING`, `HOLD.VELOCITY_WINDOW_MS` |
 | Bouncier/deader surfaces | `SURFACES.*` |
 | Stickier/looser grab gesture | `GESTURE.PINCH_*`, `GESTURE.FIST_*` |
+| Throws dropping / phantom throws | `THROW.MIN_UP_FLICK`, `HOLD.FLICK_RECENCY_MS` |
 | Move the camera/view | `RENDER.CAM_POS`, `RENDER.HORIZON` |
 | Debug overlay (FPS, ball state) | append `?debug` to the URL |
 
@@ -146,6 +148,7 @@ After touching physics or `THROW.*`, run `npm test` — the sweep printout shows
 - **"Camera needs HTTPS or localhost"** — serve the folder (`npm start`); don't open `index.html` directly, and don't use a bare LAN IP over http.
 - **Hand not detected** — more light, palm toward the lens, hand fully in frame, ~50–80 cm away. The PiP label tells you what the tracker sees.
 - **Ball releases while aiming** — exaggerate the pinch; the grab meter at the bottom of the PiP shows how solidly you're holding.
+- **Ball drops instead of throwing** — flick and open your hand in one motion (don't stop, then open). It's fine to flick right out of the frame — that still counts as a throw.
 - **Choppy on an old laptop** — close other tabs using the camera/GPU; tracking is the heavy part, the game itself is cheap. The GPU→CPU fallback is automatic.
 - **Shots feel impossible** — that's regulation physics 🙂 keep aim assist on, and aim for a high arc (~52°).
 

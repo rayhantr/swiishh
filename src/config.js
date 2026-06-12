@@ -63,7 +63,10 @@ export const HOLD = {
   Y_MAX: 2.75,
   Z: 0.15,                   // hold plane sits just past the FT line
   SMOOTHING: 16,             // exponential follow rate, s⁻¹ (higher = snappier)
-  VELOCITY_WINDOW_MS: 90,    // flick velocity = average over this trailing window
+  VELOCITY_WINDOW_MS: 90,    // width of each velocity probe window
+  FLICK_RECENCY_MS: 170,     // peak search only trusts probes ending this
+                             // recently — compensates pinch-open detection
+                             // latency without resurrecting old aim motion
 };
 
 /** Mapping from release-flick velocity (m/s in the hold plane) → launch. */
@@ -72,7 +75,7 @@ export const THROW = {
   GAIN_SIDE: 0.95,           // lateral launch per unit of sideways flick
   FWD_BASE: 1.1,             // m/s toward the hoop, always present on release
   FWD_FROM_FLICK: 0.62,      // extra forward speed per unit of upward flick
-  MIN_UP_FLICK: 0.9,         // softer flicks than this just drop the ball
+  MIN_UP_FLICK: 0.6,         // softer flicks than this just drop the ball
   MAX_SPEED: 11.5,           // overall launch speed clamp
   BACKSPIN_BASE: 7,          // rad/s
   BACKSPIN_FROM_FLICK: 0.9,  // extra backspin per unit of upward flick

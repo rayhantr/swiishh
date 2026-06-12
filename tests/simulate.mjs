@@ -10,9 +10,10 @@
  *
  * Exits non-zero on failure, so it works as a CI gate.
  */
-import { PHYSICS, COURT } from '../src/config.js';
+import { PHYSICS, COURT, THROW } from '../src/config.js';
 import { World } from '../src/physics/world.js';
 import { computeLaunch } from '../src/game/throwModel.js';
+import { measureFlick } from '../src/game/flickMeter.js';
 import { v3 } from '../src/core/math.js';
 
 const RELEASE = v3(0, 2.0, 0.15); // typical release point of a held ball
@@ -96,6 +97,43 @@ const check = (label, ok, detail = '') => {
   const wild = simulateShot({ x: 3.5, y: 6.0 }, 0.55);
   check('hard sideways flick still misses with assist', wild.outcome !== 'score',
     `outcome: ${wild.outcome}`);
+}
+
+// ── 5. flick meter (release-latency compensation) ───────────────────────
+{
+  console.log('\nFlick meter:');
+  const HZ = 240;
+  const step = 1000 / HZ;
+
+  // Build a hold-history trace from piecewise segments of {duration ms, vy m/s}.
+  const trace = (segments) => {
+    const h = [];
+    let t = 0, y = 1.2;
+    for (const [ms, vy] of segments) {
+      for (let i = 0; i < ms / step; i++) {
+        h.push({ x: 0, y, t });
+        t += step;
+        y += (vy * step) / 1000;
+      }
+    }
+    return { history: h, now: t };
+  };
+
+  // Real throw, but the tracker reports the release 60 ms late (hand already
+  // stopped). The old trailing-average read ~0 here and dropped the ball.
+  const late = trace([[100, 0], [130, 6.0], [60, 0]]);
+  const lateFlick = measureFlick(late.history, late.now);
+  check('late-detected release still reads as a ~6 m/s throw',
+    lateFlick.y > 4.5 && lateFlick.y >= THROW.MIN_UP_FLICK,
+    `measured ${lateFlick.y.toFixed(1)} m/s`);
+
+  // Aimed upward, then settled for 400 ms, then opened the hand gently —
+  // the old motion must NOT resurrect into a phantom throw.
+  const settled = trace([[150, 3.0], [400, 0]]);
+  const settledFlick = measureFlick(settled.history, settled.now);
+  check('settled hand reads as a drop, not a throw',
+    settledFlick.y < THROW.MIN_UP_FLICK,
+    `measured ${settledFlick.y.toFixed(2)} m/s`);
 }
 
 console.log(failures ? `\n${failures} check(s) FAILED` : '\nAll physics checks passed.');
