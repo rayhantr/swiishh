@@ -1,5 +1,6 @@
-import { PHYSICS, BALL } from '../config.js';
-import { v3, set, copy, len, cross, normalize, addScaled, scale } from '../core/math.js';
+import { PHYSICS, BALL } from '../config.ts';
+import { v3, set, copy, len, cross, normalize, addScaled, scale } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
 
 const CROSS_SECTION = Math.PI * BALL.RADIUS * BALL.RADIUS;
 const DRAG_K = 0.5 * PHYSICS.AIR_DENSITY * BALL.DRAG_COEF * CROSS_SECTION / BALL.MASS;
@@ -15,18 +16,16 @@ const _magnusDir = v3();
  * produces upward lift — exactly like a real free throw.
  */
 export class Ball {
-  constructor() {
-    this.radius = BALL.RADIUS;
-    this.pos = v3(0, 1.6, 0.2);
-    this.vel = v3();
-    this.spin = v3();
-    this.held = false;
-    this.asleep = false;
-    /** Accumulated rotation angle — purely visual (seam rendering). */
-    this.rollAngle = 0;
-  }
+  radius = BALL.RADIUS;
+  pos = v3(0, 1.6, 0.2);
+  vel = v3();
+  spin = v3();
+  held = false;
+  asleep = false;
+  /** Accumulated rotation angle — purely visual (seam rendering). */
+  rollAngle = 0;
 
-  reset(pos) {
+  reset(pos: Vec3): void {
     copy(this.pos, pos);
     set(this.vel, 0, 0, 0);
     set(this.spin, 0, 0, 0);
@@ -34,14 +33,14 @@ export class Ball {
     this.asleep = false;
   }
 
-  launch(vel, spin) {
+  launch(vel: Vec3, spin: Vec3): void {
     copy(this.vel, vel);
     copy(this.spin, spin);
     this.held = false;
     this.asleep = false;
   }
 
-  integrate(dt) {
+  integrate(dt: number): void {
     if (this.held || this.asleep) return;
 
     const speed = len(this.vel);

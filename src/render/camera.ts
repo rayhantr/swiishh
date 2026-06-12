@@ -1,4 +1,16 @@
-import { RENDER } from '../config.js';
+import { RENDER } from '../config.ts';
+import type { Vec3 } from '../core/math.ts';
+
+/** Reusable projection output record. */
+export interface Projected {
+  x: number;
+  y: number;
+  /** perspective scale — px per meter at that depth */
+  s: number;
+  visible: boolean;
+}
+
+export const newProjected = (): Projected => ({ x: 0, y: 0, s: 0, visible: false });
 
 /**
  * A fixed pinhole camera behind the shooter, looking straight down −z.
@@ -7,16 +19,14 @@ import { RENDER } from '../config.js';
  * projection a two-line function we can call thousands of times a frame.
  */
 export class Camera {
-  constructor() {
-    this.pos = { ...RENDER.CAM_POS };
-    this.w = 0;
-    this.h = 0;
-    this.f = 0;   // focal length in px
-    this.cx = 0;
-    this.cy = 0;
-  }
+  pos: Vec3 = { ...RENDER.CAM_POS };
+  w = 0;
+  h = 0;
+  f = 0;   // focal length in px
+  cx = 0;
+  cy = 0;
 
-  resize(w, h) {
+  resize(w: number, h: number): void {
     this.w = w;
     this.h = h;
     // Fit landscape by height, portrait by width, so the hoop always frames.
@@ -26,11 +36,11 @@ export class Camera {
   }
 
   /**
-   * @param {{x,y,z}} p world point
-   * @param {{x?,y?,s?,visible?}} out reused output record
+   * @param p world point
+   * @param out reused output record
    * @returns screen point + perspective scale `s` (px per meter at that depth)
    */
-  project(p, out = {}) {
+  project(p: Vec3, out: Projected = newProjected()): Projected {
     const d = this.pos.z - p.z;
     if (d < 0.05) {
       out.visible = false;

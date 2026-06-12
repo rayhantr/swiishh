@@ -1,12 +1,43 @@
-import { HOLD, THROW, GAME, ASSIST, COURT, GESTURE } from '../config.js';
-import { v3, set, clamp, lerp, damp } from '../core/math.js';
-import { computeLaunch } from './throwModel.js';
-import { measureFlick } from './flickMeter.js';
-import { Stats } from './scoring.js';
+import { HOLD, THROW, GAME, ASSIST, COURT, GESTURE } from '../config.ts';
+import { v3, set, clamp, lerp, damp } from '../core/math.ts';
+import { computeLaunch } from './throwModel.ts';
+import { measureFlick } from './flickMeter.ts';
+import { Stats } from './scoring.ts';
+import type { Flick, HoldSample } from './flickMeter.ts';
+import type { World } from '../physics/world.ts';
+import type { Renderer } from '../render/renderer.ts';
+import type { HUD } from './hud.ts';
+import type { AudioEngine } from '../audio/sounds.ts';
+import type { HandEvent } from '../input/handInput.ts';
+import type { PointerPoint } from '../input/pointerInput.ts';
 
 const SPAWN = v3(0, 1.55, HOLD.Z);
 /** Hand input is expanded so you don't have to reach the frame edges. */
 const REACH = 1.35;
+
+export type GameMode = 'camera' | 'pointer';
+type Phase = 'idle' | 'held' | 'flight' | 'wait';
+
+export interface Cursor {
+  x: number;
+  y: number;
+  z: number;
+  active: boolean;
+  present: boolean;
+}
+
+/** What the renderer needs to know each frame. */
+export interface GameView {
+  ballVisible: boolean;
+  cursor: Cursor | null;
+}
+
+interface GameDeps {
+  world: World;
+  renderer: Renderer;
+  hud: HUD;
+  audio: AudioEngine;
+}
 
 /**
  * The conductor. Owns the shot lifecycle:
@@ -17,33 +48,38 @@ const REACH = 1.35;
  * lifecycle. Controllers stay dumb; all gameplay decisions live here.
  */
 export class Game {
-  constructor({ world, renderer, hud, audio }) {
+  world: World;
+  renderer: Renderer;
+  hud: HUD;
+  audio: AudioEngine;
+  stats = new Stats();
+
+  mode: GameMode | null = null;
+  playing = false;
+  paused = false;
+  assistEnabled = true;
+  phase: Phase = 'idle';
+
+  holdTarget = v3(SPAWN.x, SPAWN.y, SPAWN.z);
+  cursor: Cursor = { x: 0, y: 0, z: HOLD.Z, active: false, present: false };
+  history: HoldSample[] = [];   // hold-plane samples for flick velocity
+  idleT = 0;
+  respawnTimer = -1;
+  handLostAt = 0;
+  tutored: boolean;
+  private _trailTick = 0;
+
+  constructor({ world, renderer, hud, audio }: GameDeps) {
     this.world = world;
     this.renderer = renderer;
     this.hud = hud;
     this.audio = audio;
-    this.stats = new Stats();
-
-    this.mode = null;          // 'camera' | 'pointer'
-    this.playing = false;
-    this.paused = false;
-    this.assistEnabled = true;
-    this.phase = 'idle';       // idle | held | flight | wait
-
-    this.holdTarget = v3(SPAWN.x, SPAWN.y, SPAWN.z);
-    this.cursor = { x: 0, y: 0, z: HOLD.Z, active: false, present: false };
-    this.history = [];         // {x, y, t} hold-plane samples for flick velocity
-    this.idleT = 0;
-    this.respawnTimer = -1;
-    this.handLostAt = 0;
     this.tutored = this.#loadFlag('swish.tutored');
-    this._trailTick = 0;
-
     this.#wireWorld();
   }
 
   // ── session ───────────────────────────────────────────────────────────
-  begin(mode) {
+  begin(mode: GameMode): void {
     this.mode = mode;
     this.playing = true;
     this.paused = false;
@@ -59,7 +95,7 @@ export class Game {
     }
   }
 
-  quit() {
+  quit(): void {
     this.playing = false;
     this.paused = false;
     this.phase = 'idle';
@@ -69,25 +105,25 @@ export class Game {
     this.hud.clearMessage();
   }
 
-  setPaused(p) {
+  setPaused(p: boolean): void {
     if (!this.playing) return;
     this.paused = p;
     this.hud.setPaused(p);
   }
 
-  toggleAssist() {
+  toggleAssist(): boolean {
     this.assistEnabled = !this.assistEnabled;
     this.hud.setAssist(this.assistEnabled);
     return this.assistEnabled;
   }
 
-  get assist() {
+  get assist(): number {
     if (!this.assistEnabled) return 0;
     return this.mode === 'camera' ? ASSIST.CAMERA : ASSIST.POINTER;
   }
 
   // ── input: hand tracking ──────────────────────────────────────────────
-  onHand(e) {
+  onHand(e: HandEvent): void {
     if (!this.playing || this.paused) return;
 
     if (!e.present) {
@@ -124,25 +160,25 @@ export class Game {
   }
 
   // ── input: pointer ────────────────────────────────────────────────────
-  onPointerDown(p) {
+  onPointerDown(p: PointerPoint): void {
     if (!this.playing || this.paused || this.phase !== 'idle') return;
     this.#setHoldTarget(p.x, p.y);
     if (this.#pointerNearBall(p)) this.#grab();
     else if (!this.tutored) this.hud.message('PRESS ON THE BALL', 'grab it, then flick up', 1800);
   }
 
-  onPointerMove(p) {
+  onPointerMove(p: PointerPoint): void {
     if (this.phase !== 'held') return;
     this.#setHoldTarget(p.x, p.y);
   }
 
-  onPointerUp() {
+  onPointerUp(): void {
     if (this.phase === 'held') this.#release();
   }
 
-  #pointerNearBall(p) {
+  #pointerNearBall(p: PointerPoint): boolean {
     const cam = this.renderer.camera;
-    const ballPt = cam.project(this.world.ball.pos, {});
+    const ballPt = cam.project(this.world.ball.pos);
     if (!ballPt.visible) return false;
     const px = p.x * cam.w;
     const py = p.y * cam.h;
@@ -151,7 +187,7 @@ export class Game {
   }
 
   // ── shot lifecycle ────────────────────────────────────────────────────
-  #setHoldTarget(nx, ny) {
+  #setHoldTarget(nx: number, ny: number): void {
     set(
       this.holdTarget,
       (nx - 0.5) * 2 * HOLD.X_RANGE,
@@ -160,7 +196,7 @@ export class Game {
     );
   }
 
-  #grab() {
+  #grab(): void {
     const ball = this.world.ball;
     ball.held = true;
     ball.asleep = false;
@@ -173,11 +209,11 @@ export class Game {
     if (!this.tutored) this.hud.message('FLICK UP TO SHOOT', 'a smooth upward snap — arc matters', 3000);
   }
 
-  #release() {
+  #release(): void {
     this.#throw(measureFlick(this.history, performance.now()));
   }
 
-  #throw(flick) {
+  #throw(flick: Flick): void {
     this.history.length = 0;
     if (flick.y < THROW.MIN_UP_FLICK) {
       this.hud.message('TOO SOFT', 'flick up faster as you let go', 1600);
@@ -193,14 +229,14 @@ export class Game {
   }
 
   /** Weak release: the ball just slips out — no attempt counted. */
-  #drop(flick = { x: 0, y: 0 }) {
+  #drop(flick: Flick = { x: 0, y: 0 }): void {
     const ball = this.world.ball;
     ball.held = false;
     set(ball.vel, flick.x * 0.6, Math.max(flick.y, 0) * 0.6, 0);
     this.phase = 'flight';
   }
 
-  #wireWorld() {
+  #wireWorld(): void {
     const { world, hud, audio } = this;
 
     world.on('score', ({ swish, points }) => {
@@ -239,7 +275,7 @@ export class Game {
     world.on('board', ({ speed }) => audio.board(speed / 7));
   }
 
-  #missReason() {
+  #missReason(): string {
     const b = this.world.ball;
     const rimZ = COURT.RIM_CENTER.z;
     if (this.world.rimTouched) return 'in and out — so close';
@@ -250,13 +286,13 @@ export class Game {
     return 'unlucky bounce';
   }
 
-  #scheduleRespawn(ms) {
+  #scheduleRespawn(ms: number): void {
     if (this.respawnTimer >= 0 || this.phase === 'wait') return;
     this.phase = 'wait';
     this.respawnTimer = ms / 1000;
   }
 
-  respawn() {
+  respawn(): void {
     this.world.ball.reset(SPAWN);
     this.phase = 'idle';
     this.idleT = 0;
@@ -265,7 +301,7 @@ export class Game {
   }
 
   // ── per-physics-step update (called before world.step) ───────────────
-  update(dt) {
+  update(dt: number): void {
     if (!this.playing || this.paused) return;
     const ball = this.world.ball;
 
@@ -289,18 +325,18 @@ export class Game {
   }
 
   /** What the renderer needs to know this frame. */
-  get view() {
+  get view(): GameView {
     return {
       ballVisible: this.playing,
       cursor: this.mode === 'camera' && this.playing && !this.paused ? this.cursor : null,
     };
   }
 
-  #loadFlag(key) {
+  #loadFlag(key: string): boolean {
     try { return localStorage.getItem(key) === '1'; } catch { return false; }
   }
 
-  #saveFlag(key) {
+  #saveFlag(key: string): void {
     try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
   }
 }

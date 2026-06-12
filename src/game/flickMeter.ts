@@ -1,5 +1,18 @@
-import { HOLD } from '../config.js';
-import { clamp } from '../core/math.js';
+import { HOLD } from '../config.ts';
+import { clamp } from '../core/math.ts';
+
+/** Flick velocity in the hold plane, m/s. */
+export interface Flick {
+  x: number;
+  y: number;
+}
+
+/** One hold-plane sample: position in meters, t in performance.now() ms. */
+export interface HoldSample {
+  x: number;
+  y: number;
+  t: number;
+}
 
 /**
  * Measures the release flick from a trail of hold-plane samples.
@@ -16,14 +29,11 @@ import { clamp } from '../core/math.js';
  * release event arrives late, while a hand that aimed quickly and then
  * settled still reads as a drop (the fast probes have aged out).
  *
- * Pure and DOM-free so tests/simulate.mjs can exercise it.
+ * Pure and DOM-free so tests/simulate.ts can exercise it.
  *
- * @param {{x: number, y: number, t: number}[]} history  oldest → newest,
- *   positions in hold-plane meters, t in performance.now() milliseconds
- * @param {number} now
- * @returns {{x: number, y: number}} flick velocity, m/s
+ * @param history oldest → newest
  */
-export function measureFlick(history, now) {
+export function measureFlick(history: HoldSample[], now: number): Flick {
   let bestY = 0;
   let bestX = 0;
   for (let j = history.length - 1; j > 0; j--) {

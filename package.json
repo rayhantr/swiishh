@@ -1,13 +1,29 @@
 {
-  "name": "swish",
+  "name": "swiishh",
   "version": "1.0.0",
-  "description": "Hand-gesture basketball in the browser — MediaPipe hand tracking + a custom rigid-body ball sim. Zero build step, zero dependencies.",
+  "description": "Hand-gesture basketball in the browser — MediaPipe hand tracking + a custom rigid-body ball sim. TypeScript throughout, zero runtime dependencies.",
   "type": "module",
   "scripts": {
-    "start": "node tools/serve.mjs",
-    "test": "node tests/simulate.mjs"
+    "build": "tsc -p tsconfig.build.json",
+    "watch": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc",
+    "start": "npm run build && node --disable-warning=ExperimentalWarning tools/serve.ts",
+    "test": "npm run typecheck && node --disable-warning=ExperimentalWarning tests/simulate.ts"
   },
-  "keywords": ["basketball", "mediapipe", "hand-tracking", "gesture", "game", "canvas", "physics"],
+  "keywords": [
+    "basketball",
+    "mediapipe",
+    "hand-tracking",
+    "gesture",
+    "game",
+    "canvas",
+    "physics",
+    "typescript"
+  ],
   "author": "Rayhan",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^25.9.3",
+    "typescript": "^6.0.3"
+  }
 }

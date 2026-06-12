@@ -8,6 +8,12 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
+/** Restitution & friction for one collidable surface. */
+export interface Surface {
+  restitution: number;
+  friction: number;
+}
+
 export const PHYSICS = {
   GRAVITY: -9.81,            // m/s²
   AIR_DENSITY: 1.225,        // kg/m³ (sea level)
@@ -26,7 +32,7 @@ export const BALL = {
 
 /** Restitution & friction per surface. Floor value matches the NBA
  *  inflation rule (6 ft drop → 49–54 in rebound ⇒ e ≈ 0.82). */
-export const SURFACES = {
+export const SURFACES: Record<'FLOOR' | 'RIM' | 'BOARD', Surface> = {
   FLOOR: { restitution: 0.86, friction: 0.40 },
   RIM:   { restitution: 0.42, friction: 0.30 },
   BOARD: { restitution: 0.62, friction: 0.25 },
@@ -123,7 +129,7 @@ export const RENDER = {
 };
 
 /** `?debug` in the URL overlays physics/FPS info. Guarded so the physics
- *  modules stay importable from Node (tests/simulate.mjs). */
+ *  modules stay importable from Node (tests/simulate.ts). */
 export const DEBUG =
   typeof location !== 'undefined' &&
   new URLSearchParams(location.search).has('debug');

@@ -1,4 +1,8 @@
-import { COURT } from '../config.js';
+import { COURT } from '../config.ts';
+import { newProjected } from './camera.ts';
+import type { Camera } from './camera.ts';
+import type { Vec3 } from '../core/math.ts';
+import type { Net } from '../physics/net.ts';
 
 /**
  * All static scenery: night sky, floodlit asphalt, chalk markings, pole,
@@ -19,10 +23,10 @@ const STARS = Array.from({ length: 70 }, (_, i) => {
   return { x: (h % 64) / 64, y: ((h >> 6) % 64) / 64, tw: (i % 5) + 2 };
 });
 
-const _p = {};
-const _q = {};
+const _p = newProjected();
+const _q = newProjected();
 
-function projectedPath(ctx, cam, points) {
+function projectedPath(ctx: CanvasRenderingContext2D, cam: Camera, points: Vec3[]): void {
   ctx.beginPath();
   let started = false;
   for (const wp of points) {
@@ -33,7 +37,7 @@ function projectedPath(ctx, cam, points) {
   }
 }
 
-export function drawBackdrop(ctx, cam, time) {
+export function drawBackdrop(ctx: CanvasRenderingContext2D, cam: Camera, time: number): void {
   const { w, h } = cam;
 
   const sky = ctx.createLinearGradient(0, 0, 0, h);
@@ -78,7 +82,7 @@ export function drawBackdrop(ctx, cam, time) {
   }
 }
 
-export function drawGround(ctx, cam) {
+export function drawGround(ctx: CanvasRenderingContext2D, cam: Camera): void {
   // asphalt slab
   projectedPath(ctx, cam, [
     { x: -10, y: 0, z: 2.45 },
@@ -114,7 +118,7 @@ export function drawGround(ctx, cam) {
   drawMarkings(ctx, cam);
 }
 
-function drawMarkings(ctx, cam) {
+function drawMarkings(ctx: CanvasRenderingContext2D, cam: Camera): void {
   ctx.save();
   ctx.strokeStyle = CHALK;
   cam.project({ x: 0, y: 0, z: -2 }, _p);
@@ -163,8 +167,8 @@ function drawMarkings(ctx, cam) {
   ctx.restore();
 }
 
-function circlePoints(cx, cz, r, n) {
-  const pts = [];
+function circlePoints(cx: number, cz: number, r: number, n: number): Vec3[] {
+  const pts: Vec3[] = [];
   for (let i = 0; i <= n; i++) {
     const a = (i / n) * Math.PI * 2;
     pts.push({ x: cx + Math.cos(a) * r, y: 0, z: cz + Math.sin(a) * r });
@@ -172,8 +176,8 @@ function circlePoints(cx, cz, r, n) {
   return pts;
 }
 
-function arcPoints(cx, cz, r, a0, a1, n) {
-  const pts = [];
+function arcPoints(cx: number, cz: number, r: number, a0: number, a1: number, n: number): Vec3[] {
+  const pts: Vec3[] = [];
   for (let i = 0; i <= n; i++) {
     const a = a0 + (i / n) * (a1 - a0);
     pts.push({ x: cx + Math.sin(a) * r, y: 0, z: cz + Math.cos(a) * r });
@@ -181,7 +185,7 @@ function arcPoints(cx, cz, r, a0, a1, n) {
   return pts;
 }
 
-export function drawHoopStructure(ctx, cam) {
+export function drawHoopStructure(ctx: CanvasRenderingContext2D, cam: Camera): void {
   // pole
   cam.project({ x: 0, y: 0, z: POLE_Z }, _p);
   cam.project({ x: 0, y: 4.45, z: POLE_Z }, _q);
@@ -217,9 +221,9 @@ export function drawHoopStructure(ctx, cam) {
   drawBackboard(ctx, cam);
 }
 
-function drawBackboard(ctx, cam) {
+function drawBackboard(ctx: CanvasRenderingContext2D, cam: Camera): void {
   const { BOARD_WIDTH: W, BOARD_BOTTOM_Y: B, BOARD_HEIGHT: H, BOARD_FACE_Z: Z } = COURT;
-  const corners = [
+  const corners: Vec3[] = [
     { x: -W / 2, y: B, z: Z },
     { x: -W / 2, y: B + H, z: Z },
     { x: W / 2, y: B + H, z: Z },
@@ -252,14 +256,22 @@ function drawBackboard(ctx, cam) {
   ctx.stroke();
 }
 
+export interface RimEllipseShape {
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  s: number;
+}
+
 /**
  * The projected rim is an ellipse; we measure it by projecting its center,
  * a side point and the near/far points, then draw it in two halves so the
  * ball can pass *between* them (under the near iron, over the far iron).
  */
-export function rimEllipse(cam) {
+export function rimEllipse(cam: Camera): RimEllipseShape {
   const c = COURT.RIM_CENTER;
-  const center = cam.project(c, {});
+  const center = cam.project(c);
   cam.project({ x: c.x + COURT.RIM_RADIUS, y: c.y, z: c.z }, _p);
   const rx = Math.abs(_p.x - center.x);
   cam.project({ x: c.x, y: c.y, z: c.z + COURT.RIM_RADIUS }, _p); // near
@@ -274,7 +286,7 @@ export function rimEllipse(cam) {
 }
 
 /** half: 'far' (top arc, behind the ball) or 'near' (bottom arc, in front). */
-export function drawRimHalf(ctx, ellipse, half) {
+export function drawRimHalf(ctx: CanvasRenderingContext2D, ellipse: RimEllipseShape, half: 'far' | 'near'): void {
   const lw = Math.max(2, 0.036 * ellipse.s);
   ctx.save();
   ctx.strokeStyle = '#ff5d2e';
@@ -292,9 +304,9 @@ export function drawRimHalf(ctx, ellipse, half) {
 
 /**
  * Net strands, split by depth so strands behind the ball render first.
- * @param {'far'|'near'} half — strands with anchor z beyond/before the rim center
+ * @param half — strands with anchor z beyond/before the rim center
  */
-export function drawNet(ctx, cam, net, half) {
+export function drawNet(ctx: CanvasRenderingContext2D, cam: Camera, net: Net, half: 'far' | 'near'): void {
   const rimZ = COURT.RIM_CENTER.z;
   ctx.save();
   ctx.strokeStyle = 'rgba(244, 240, 232, 0.65)';

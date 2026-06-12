@@ -1,23 +1,24 @@
-import { THROW, COURT, ASSIST } from '../config.js';
-import { v3, clamp, lerp } from '../core/math.js';
+import { THROW, COURT, ASSIST } from '../config.ts';
+import { v3, clamp, lerp } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
+import type { Flick } from './flickMeter.ts';
 
 /**
  * Pure mapping from a release flick (measured hand/pointer velocity in the
  * hold plane, m/s) to a launch state. Shared by the game and by
- * tests/simulate.mjs so the tuning that ships is the tuning that's tested.
+ * tests/simulate.ts so the tuning that ships is the tuning that's tested.
  *
  * The player's flick controls arc (vy) and aim (vx) directly; forward speed
  * is derived from flick strength — flicking harder throws both higher AND
  * farther, which matches the intuition of a real shot.
  *
- * @param {{x: number, y: number}} flick  in-plane velocity at release, m/s
- * @param {{x: number, y: number, z: number}} pos  release position
- * @param {number} assist  0..1 — blends forward/lateral speed toward the
- *   no-drag ballistic solution for the player's own arc. Vertical speed is
- *   never assisted, so arc and timing stay honest.
- * @returns {{vel: any, spin: any}}
+ * @param flick  in-plane velocity at release, m/s
+ * @param pos    release position
+ * @param assist 0..1 — blends forward/lateral speed toward the no-drag
+ *   ballistic solution for the player's own arc. Vertical speed is never
+ *   assisted, so arc and timing stay honest.
  */
-export function computeLaunch(flick, pos, assist = 0) {
+export function computeLaunch(flick: Flick, pos: Vec3, assist = 0): { vel: Vec3; spin: Vec3 } {
   const up = Math.max(0, flick.y);
   const vy = up * THROW.GAIN_UP;
   let vx = flick.x * THROW.GAIN_SIDE;

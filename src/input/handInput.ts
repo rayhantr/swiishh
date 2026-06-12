@@ -1,15 +1,17 @@
-import { GESTURE } from '../config.js';
-import { Emitter } from '../core/events.js';
+import { GESTURE } from '../config.ts';
+import { Emitter } from '../core/events.ts';
 
 const MP_VERSION = '0.10.14';
-const MP_ESM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/+esm`;
+// Typed as plain string so tsc treats the import() below as a fully dynamic
+// external module (the CDN URL is resolved by the browser, not the compiler).
+const MP_ESM: string = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/+esm`;
 const MP_WASM = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/wasm`;
 const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
 /** Landmark indices (MediaPipe hand model). */
 const LM = { WRIST: 0, THUMB_TIP: 4, INDEX_TIP: 8, MIDDLE_MCP: 9, MIDDLE_TIP: 12, RING_TIP: 16, PINKY_TIP: 20 };
-const SKELETON = [
+const SKELETON: Array<[number, number]> = [
   [0, 1], [1, 2], [2, 3], [3, 4],
   [0, 5], [5, 6], [6, 7], [7, 8],
   [5, 9], [9, 10], [10, 11], [11, 12],
@@ -17,7 +19,34 @@ const SKELETON = [
   [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
 ];
 
-const dist2d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+/** Minimal structural types for the parts of @mediapipe/tasks-vision we use
+ *  (the library is CDN-loaded at runtime, so we don't depend on its .d.ts). */
+interface Landmark {
+  x: number;
+  y: number;
+  z?: number;
+}
+interface HandLandmarkerResult {
+  landmarks?: Landmark[][];
+}
+interface HandLandmarkerLike {
+  detectForVideo(video: HTMLVideoElement, timestampMs: number): HandLandmarkerResult;
+}
+
+export type CameraFacing = 'user' | 'environment';
+
+export type HandEvent =
+  | { present: false }
+  | { present: true; x: number; y: number; grab: boolean; grabStrength: number };
+
+export type HandInputEvents = {
+  status: string;
+  ready: undefined;
+  hand: HandEvent;
+  error: { code: string; message: string };
+};
+
+const dist2d = (a: Landmark, b: Landmark): number => Math.hypot(a.x - b.x, a.y - b.y);
 
 /**
  * Camera + MediaPipe HandLandmarker wrapper.
@@ -34,23 +63,28 @@ const dist2d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
  * hand span so it works at any distance from the lens, with hysteresis so
  * tracking jitter can't drop the ball mid-aim.
  */
-export class HandInput extends Emitter {
-  constructor(video, pipCanvas) {
+export class HandInput extends Emitter<HandInputEvents> {
+  video: HTMLVideoElement;
+  pip: HTMLCanvasElement;
+  pipCtx: CanvasRenderingContext2D;
+  landmarker: HandLandmarkerLike | null = null;
+  stream: MediaStream | null = null;
+  facing: CameraFacing = 'user';
+  mirror = true;
+  running = false;
+  private _grabbing = false;
+  private _switching = false;
+  private _lastTs = 0;
+  private _raf = 0;
+
+  constructor(video: HTMLVideoElement, pipCanvas: HTMLCanvasElement) {
     super();
     this.video = video;
     this.pip = pipCanvas;
-    this.pipCtx = pipCanvas.getContext('2d');
-    this.landmarker = null;
-    this.stream = null;
-    this.facing = 'user';
-    this.mirror = true;
-    this.running = false;
-    this._grabbing = false;
-    this._lastTs = 0;
-    this._raf = 0;
+    this.pipCtx = pipCanvas.getContext('2d')!;
   }
 
-  async start(facing = this.facing) {
+  async start(facing: CameraFacing = this.facing): Promise<boolean> {
     this.facing = facing;
 
     if (!window.isSecureContext) {
@@ -79,7 +113,7 @@ export class HandInput extends Emitter {
         }
       }
     } catch (err) {
-      return this.#fail('loadfail', `Hand tracker failed to load (offline? blocked CDN?): ${err.message}`);
+      return this.#fail('loadfail', `Hand tracker failed to load (offline? blocked CDN?): ${(err as Error).message}`);
     }
 
     this.emit('status', 'Starting camera…');
@@ -93,13 +127,14 @@ export class HandInput extends Emitter {
         },
       });
     } catch (err) {
-      const map = {
+      const map: Record<string, [string, string]> = {
         NotAllowedError: ['permission', 'Camera permission denied. Allow camera access in the address bar, or play with mouse/touch.'],
         NotFoundError: ['nocamera', 'No camera found on this device.'],
         OverconstrainedError: ['nocamera', 'No camera matches the request — trying the other lens may help.'],
         NotReadableError: ['busy', 'The camera is in use by another app.'],
       };
-      const [code, message] = map[err.name] ?? ['unknown', `Camera error: ${err.message}`];
+      const e = err as DOMException;
+      const [code, message] = map[e.name] ?? ['unknown', `Camera error: ${e.message}`];
       return this.#fail(code, message);
     }
 
@@ -116,9 +151,9 @@ export class HandInput extends Emitter {
     // Selfie lens reads mirrored by default; rear lens does not.
     this.mirror = facing === 'user';
     await this.video.play().catch(() => {});
-    await new Promise((res) => {
+    await new Promise<void>((res) => {
       if (this.video.readyState >= 2) res();
-      else this.video.addEventListener('loadeddata', res, { once: true });
+      else this.video.addEventListener('loadeddata', () => res(), { once: true });
     });
 
     this.running = true;
@@ -128,7 +163,7 @@ export class HandInput extends Emitter {
     return true;
   }
 
-  stop() {
+  stop(): void {
     this.running = false;
     cancelAnimationFrame(this._raf);
     this.stream?.getTracks().forEach((t) => t.stop());
@@ -136,9 +171,9 @@ export class HandInput extends Emitter {
   }
 
   /** Toggle front/rear lens; falls back to the working lens on failure. */
-  async switchCamera() {
+  async switchCamera(): Promise<boolean> {
     const previous = this.facing;
-    const next = previous === 'user' ? 'environment' : 'user';
+    const next: CameraFacing = previous === 'user' ? 'environment' : 'user';
     this.stop();
     this._switching = true;
     let ok = await this.start(next);
@@ -150,17 +185,17 @@ export class HandInput extends Emitter {
     return ok;
   }
 
-  setMirror(m) {
+  setMirror(m: boolean): void {
     this.mirror = m;
   }
 
-  #fail(code, message) {
+  #fail(code: string, message: string): false {
     // During a lens switch, failure is handled by falling back — stay quiet.
     if (!this._switching) this.emit('error', { code, message });
     return false;
   }
 
-  #scheduleDetect() {
+  #scheduleDetect(): void {
     const step = () => {
       if (!this.running) return;
       this.#detect();
@@ -169,7 +204,7 @@ export class HandInput extends Emitter {
     this._raf = requestAnimationFrame(step);
   }
 
-  #detect() {
+  #detect(): void {
     const video = this.video;
     if (!this.landmarker || video.readyState < 2 || !video.videoWidth) return;
 
@@ -178,7 +213,7 @@ export class HandInput extends Emitter {
     if (ts <= this._lastTs) return;
     this._lastTs = ts;
 
-    let result;
+    let result: HandLandmarkerResult;
     try {
       result = this.landmarker.detectForVideo(video, ts);
     } catch {
@@ -227,7 +262,7 @@ export class HandInput extends Emitter {
   }
 
   /** Picture-in-picture: camera thumbnail + skeleton + grab meter. */
-  #drawPip(lm, grabStrength = 0) {
+  #drawPip(lm: Landmark[] | null, grabStrength = 0): void {
     const ctx = this.pipCtx;
     const { width: w, height: h } = this.pip;
     ctx.save();
@@ -263,13 +298,13 @@ export class HandInput extends Emitter {
   }
 }
 
-function avg(points) {
+function avg(points: Landmark[]): { x: number; y: number } {
   let x = 0, y = 0;
   for (const p of points) { x += p.x; y += p.y; }
   return { x: x / points.length, y: y / points.length };
 }
 
 /** Maps v from [from..to] → 0..1 (works with from > to). */
-function norm(v, from, to) {
+function norm(v: number, from: number, to: number): number {
   return Math.max(0, Math.min(1, (v - from) / (to - from)));
 }

@@ -1,5 +1,8 @@
-import { COURT, SURFACES } from '../config.js';
-import { v3, set, sub, dot, len, scale, cross, addScaled, normalize } from '../core/math.js';
+import { COURT, SURFACES } from '../config.ts';
+import { v3, set, sub, dot, len, scale, cross, addScaled, normalize } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
+import type { Surface } from '../config.ts';
+import type { Ball } from './ball.ts';
 
 /**
  * Contact resolution and the three colliders that matter for a free throw:
@@ -9,7 +12,7 @@ import { v3, set, sub, dot, len, scale, cross, addScaled, normalize } from '../c
  * Deliberate simplifications, documented for contributors:
  *  - backboard edges/pole are not colliders (the rim catches almost
  *    everything a free throw can reach),
- *  - the net only damps the ball (see world.js); strands push outward
+ *  - the net only damps the ball (see world.ts); strands push outward
  *    visually but do not bounce the ball.
  */
 
@@ -30,9 +33,9 @@ const _dSpin = v3();
  *
  * Works in velocity (per-unit-mass) space, so no masses appear.
  *
- * @returns {number} normal impact speed (0 if separating)
+ * @returns normal impact speed (0 if separating)
  */
-export function resolveContact(ball, normal, depth, surface) {
+export function resolveContact(ball: Ball, normal: Vec3, depth: number, surface: Surface): number {
   // Positional correction — push the ball out of penetration.
   addScaled(ball.pos, ball.pos, normal, depth);
 
@@ -69,7 +72,7 @@ export function resolveContact(ball, normal, depth, surface) {
 }
 
 /** @returns impact speed, or 0 if no contact this step. */
-export function collideFloor(ball) {
+export function collideFloor(ball: Ball): number {
   const pen = ball.radius - (ball.pos.y - COURT.FLOOR_Y);
   if (pen <= 0) return 0;
   set(_n, 0, 1, 0);
@@ -81,7 +84,7 @@ export function collideFloor(ball) {
  * previous position to catch fast crossings that would tunnel through the
  * thin plane in a single step.
  */
-export function collideBackboard(ball, prevZ) {
+export function collideBackboard(ball: Ball, prevZ: number): number {
   const { BOARD_FACE_Z, BOARD_WIDTH, BOARD_BOTTOM_Y, BOARD_HEIGHT } = COURT;
   const within =
     Math.abs(ball.pos.x) <= BOARD_WIDTH / 2 &&
@@ -110,7 +113,7 @@ const _rimClosest = v3();
  * center, then collide sphere-vs-tube. This single test handles front iron,
  * back iron, side rattles and rolls around the cylinder.
  */
-export function collideRim(ball) {
+export function collideRim(ball: Ball): number {
   const c = COURT.RIM_CENTER;
   sub(_rimDelta, ball.pos, c);
   // Project onto the rim's horizontal plane to find the nearest circle point.

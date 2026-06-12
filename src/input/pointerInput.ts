@@ -1,4 +1,18 @@
-import { Emitter } from '../core/events.js';
+import { Emitter } from '../core/events.ts';
+
+/** Normalized 0..1 canvas coordinates. */
+export interface PointerPoint {
+  x: number;
+  y: number;
+}
+
+export type PointerInputEvents = {
+  down: PointerPoint;
+  move: PointerPoint;
+  up: PointerPoint;
+};
+
+type PointerEventName = 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel';
 
 /**
  * Mouse / touch / stylus fallback. Emits the same vocabulary the game
@@ -11,11 +25,14 @@ import { Emitter } from '../core/events.js';
  * Pointer events unify mouse and touch; pointer capture keeps the drag
  * alive even when the finger slides off the canvas edge mid-flick.
  */
-export class PointerInput extends Emitter {
-  constructor(el) {
+export class PointerInput extends Emitter<PointerInputEvents> {
+  el: HTMLElement;
+  active = false;
+  private _handlers: Array<[PointerEventName, (e: PointerEvent) => void]>;
+
+  constructor(el: HTMLElement) {
     super();
     this.el = el;
-    this.active = false;
     this._handlers = [
       ['pointerdown', (e) => this.#down(e)],
       ['pointermove', (e) => this.#move(e)],
@@ -24,16 +41,16 @@ export class PointerInput extends Emitter {
     ];
   }
 
-  attach() {
+  attach(): void {
     for (const [ev, fn] of this._handlers) this.el.addEventListener(ev, fn);
   }
 
-  detach() {
+  detach(): void {
     for (const [ev, fn] of this._handlers) this.el.removeEventListener(ev, fn);
     this.active = false;
   }
 
-  #norm(e) {
+  #norm(e: PointerEvent): PointerPoint {
     const r = this.el.getBoundingClientRect();
     return {
       x: (e.clientX - r.left) / r.width,
@@ -41,18 +58,18 @@ export class PointerInput extends Emitter {
     };
   }
 
-  #down(e) {
+  #down(e: PointerEvent): void {
     this.active = true;
     this.el.setPointerCapture?.(e.pointerId);
     this.emit('down', this.#norm(e));
   }
 
-  #move(e) {
+  #move(e: PointerEvent): void {
     if (!this.active) return;
     this.emit('move', this.#norm(e));
   }
 
-  #up(e) {
+  #up(e: PointerEvent): void {
     if (!this.active) return;
     this.active = false;
     this.emit('up', this.#norm(e));

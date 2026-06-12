@@ -1,4 +1,9 @@
-import { PHYSICS } from '../config.js';
+import { PHYSICS } from '../config.ts';
+
+interface LoopHooks {
+  update: (dt: number) => void;
+  render: (dt: number) => void;
+}
 
 /**
  * Fixed-timestep game loop. Physics always steps at PHYSICS.FIXED_DT for
@@ -7,20 +12,21 @@ import { PHYSICS } from '../config.js';
  * doesn't fast-forward the simulation when it wakes up.
  */
 export class Loop {
-  /**
-   * @param {{ update: (dt: number) => void, render: (dt: number) => void }} hooks
-   */
-  constructor({ update, render }) {
+  update: (dt: number) => void;
+  render: (dt: number) => void;
+  running = false;
+  private _last = 0;
+  private _acc = 0;
+  private _raf = 0;
+  private _tick: (now: number) => void;
+
+  constructor({ update, render }: LoopHooks) {
     this.update = update;
     this.render = render;
-    this.running = false;
-    this._last = 0;
-    this._acc = 0;
-    this._raf = 0;
-    this._tick = this._tick.bind(this);
+    this._tick = this.#tick.bind(this);
   }
 
-  start() {
+  start(): void {
     if (this.running) return;
     this.running = true;
     this._last = performance.now();
@@ -28,12 +34,12 @@ export class Loop {
     this._raf = requestAnimationFrame(this._tick);
   }
 
-  stop() {
+  stop(): void {
     this.running = false;
     cancelAnimationFrame(this._raf);
   }
 
-  _tick(now) {
+  #tick(now: number): void {
     if (!this.running) return;
     const frameDt = Math.min((now - this._last) / 1000, PHYSICS.MAX_FRAME_DT);
     this._last = now;

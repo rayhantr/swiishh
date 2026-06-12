@@ -1,13 +1,16 @@
-import { COURT, RENDER, DEBUG } from '../config.js';
-import { Camera } from './camera.js';
-import { Effects } from './effects.js';
+import { COURT, RENDER, DEBUG } from '../config.ts';
+import { Camera, newProjected } from './camera.ts';
+import { Effects } from './effects.ts';
 import {
   drawBackdrop, drawGround, drawHoopStructure,
   rimEllipse, drawRimHalf, drawNet,
-} from './court.js';
-import { clamp } from '../core/math.js';
+} from './court.ts';
+import { clamp } from '../core/math.ts';
+import type { World } from '../physics/world.ts';
+import type { Ball } from '../physics/ball.ts';
+import type { Cursor, GameView } from '../game/game.ts';
 
-const _p = {};
+const _p = newProjected();
 
 /**
  * Composes the frame. Depth is handled painter's-style with three ball
@@ -15,19 +18,22 @@ const _p = {};
  * exact for everything a free throw can do.
  */
 export class Renderer {
-  constructor(canvas) {
+  canvas: HTMLCanvasElement;
+  ctx: CanvasRenderingContext2D;
+  camera = new Camera();
+  effects = new Effects();
+  time = 0;
+  private _fps = 0;
+
+  constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.ctx = canvas.getContext('2d');
-    this.camera = new Camera();
-    this.effects = new Effects();
-    this.time = 0;
-    this._fps = 0;
+    this.ctx = canvas.getContext('2d')!;
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
   }
 
-  resize() {
+  resize(): void {
     const dpr = Math.min(window.devicePixelRatio || 1, RENDER.MAX_DPR);
     const w = this.canvas.clientWidth || window.innerWidth;
     const h = this.canvas.clientHeight || window.innerHeight;
@@ -37,11 +43,7 @@ export class Renderer {
     this.camera.resize(w, h);
   }
 
-  /**
-   * @param {import('../physics/world.js').World} world
-   * @param {{ballVisible: boolean, cursor: {x,y,z,active,present}|null}} view
-   */
-  render(world, view, dt) {
+  render(world: World, view: GameView, dt: number): void {
     this.time += dt;
     this.effects.update(dt);
     const ctx = this.ctx;
@@ -80,7 +82,7 @@ export class Renderer {
     if (DEBUG) this.#drawDebug(ctx, world, dt);
   }
 
-  #drawBallShadow(ctx, cam, ball) {
+  #drawBallShadow(ctx: CanvasRenderingContext2D, cam: Camera, ball: Ball): void {
     cam.project({ x: ball.pos.x, y: 0, z: ball.pos.z }, _p);
     if (!_p.visible) return;
     const r = ball.radius * _p.s;
@@ -100,7 +102,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  #drawBall(ctx, cam, ball) {
+  #drawBall(ctx: CanvasRenderingContext2D, cam: Camera, ball: Ball): void {
     cam.project(ball.pos, _p);
     if (!_p.visible) return;
     const r = ball.radius * _p.s;
@@ -143,7 +145,7 @@ export class Renderer {
     ctx.fill();
   }
 
-  #drawHandCursor(ctx, cam, cursor) {
+  #drawHandCursor(ctx: CanvasRenderingContext2D, cam: Camera, cursor: Cursor): void {
     cam.project(cursor, _p);
     if (!_p.visible) return;
     const r = 0.09 * _p.s;
@@ -163,7 +165,7 @@ export class Renderer {
     ctx.restore();
   }
 
-  #drawDebug(ctx, world, dt) {
+  #drawDebug(ctx: CanvasRenderingContext2D, world: World, dt: number): void {
     this._fps = this._fps * 0.95 + (1 / Math.max(dt, 1e-4)) * 0.05;
     const b = world.ball;
     const lines = [

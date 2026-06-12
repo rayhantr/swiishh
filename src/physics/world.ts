@@ -1,9 +1,19 @@
-import { COURT, BALL, NET, GAME, PHYSICS } from '../config.js';
-import { v3, copy, len, lerp } from '../core/math.js';
-import { Ball } from './ball.js';
-import { Net } from './net.js';
-import { collideFloor, collideBackboard, collideRim } from './colliders.js';
-import { Emitter } from '../core/events.js';
+import { COURT, BALL, NET, GAME, PHYSICS } from '../config.ts';
+import { v3, copy, len, lerp } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
+import { Ball } from './ball.ts';
+import { Net } from './net.ts';
+import { collideFloor, collideBackboard, collideRim } from './colliders.ts';
+import { Emitter } from '../core/events.ts';
+
+export type WorldEvents = {
+  bounce: { speed: number };
+  rim: { speed: number };
+  board: { speed: number };
+  score: { swish: boolean; points: number };
+  miss: undefined;
+  rest: undefined;
+};
 
 /**
  * Owns the ball, the net and the shot lifecycle. Emits:
@@ -19,20 +29,17 @@ import { Emitter } from '../core/events.js';
  * the play volume, or times out. Floor-first means a free throw can never
  * score after bouncing, so the first floor contact resolves a live shot.
  */
-export class World extends Emitter {
-  constructor() {
-    super();
-    this.ball = new Ball();
-    this.net = new Net();
-    this.shotLive = false;
-    this.rimTouched = false;
-    this.boardTouched = false;
-    this.shotTime = 0;
-    this._prev = v3();
-    this._netCooldown = 0;
-  }
+export class World extends Emitter<WorldEvents> {
+  ball = new Ball();
+  net = new Net();
+  shotLive = false;
+  rimTouched = false;
+  boardTouched = false;
+  shotTime = 0;
+  private _prev = v3();
+  private _netCooldown = 0;
 
-  launch(vel, spin) {
+  launch(vel: Vec3, spin: Vec3): void {
     this.ball.launch(vel, spin);
     this.shotLive = true;
     this.rimTouched = false;
@@ -43,7 +50,7 @@ export class World extends Emitter {
   /** One fixed step. The 240 Hz step is small enough that a single pass per
    *  collider is robust (max travel ≈ 5 cm at peak speed vs. a 14 cm rim
    *  contact envelope). */
-  step(dt) {
+  step(dt: number): void {
     const ball = this.ball;
     if (this.shotLive) this.shotTime += dt;
 
@@ -108,7 +115,7 @@ export class World extends Emitter {
     if (this._netCooldown > 0) this._netCooldown -= dt;
   }
 
-  #applyNetDrag(dt) {
+  #applyNetDrag(dt: number): void {
     const ball = this.ball;
     const c = COURT.RIM_CENTER;
     const depth = c.y - ball.pos.y;
@@ -125,7 +132,7 @@ export class World extends Emitter {
     ball.vel.z *= k;
   }
 
-  #score() {
+  #score(): void {
     this.shotLive = false;
     const swish = !this.rimTouched && !this.boardTouched;
     this.emit('score', {
@@ -134,7 +141,7 @@ export class World extends Emitter {
     });
   }
 
-  #endShot(scored) {
+  #endShot(scored: boolean): void {
     this.shotLive = false;
     if (!scored) this.emit('miss');
   }

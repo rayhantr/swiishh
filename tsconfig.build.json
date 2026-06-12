@@ -1,0 +1,14 @@
+{
+  // Browser build: compiles src/ → dist/ as plain ES2022 modules.
+  // `rewriteRelativeImportExtensions` (inherited) turns the `.ts` import
+  // specifiers into `.js` in the emitted files, so dist/ runs natively
+  // in the browser with no bundler.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": []
+  },
+  "include": ["src"]
+}

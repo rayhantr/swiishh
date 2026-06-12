@@ -1,8 +1,8 @@
-# 🏀 SWISH — hand-tracked streetball
+# 🏀 SWIISHH — hand-tracked streetball
 
 A free-throw basketball game you play by **pinching and flicking your hand in front of your laptop or phone camera**. Midnight-blacktop vibes, regulation-spec court, and a ball that flies on real aerodynamics — drag, Magnus lift from backspin, spin-coupled bounces.
 
-No build step. No npm install. No binary assets. Open it from any static server and play.
+Written in strict TypeScript with zero runtime dependencies and no binary assets. The only build step is `tsc` compiling `src/` → `dist/` for the browser (`npm start` does it for you); tests and the dev server run their TypeScript directly on Node ≥ 22.18 — no bundler anywhere.
 
 ```
 pinch (or fist) ──▶ grab the ball
@@ -19,11 +19,16 @@ No camera? No problem — there's a full **mouse & touch mode** (press the ball,
 Camera access requires a **secure context** (HTTPS or `localhost`), so open the folder through any static server rather than double-clicking `index.html`:
 
 ```sh
-# any one of these, from the repo root:
-npm start                      # zero-dep server bundled in tools/serve.mjs, port 3000
+npm install        # dev-only: typescript + @types/node
+npm start          # compiles src/ → dist/, then serves on port 3000 (zero-dep server in tools/serve.ts)
+
+# or build once and use any static server:
+npm run build
 npx serve -l 3000 .
 python -m http.server 3000
 ```
+
+`npm run watch` keeps `tsc` recompiling on save while a server is running.
 
 Then visit **http://localhost:3000**, click **Play with camera**, and allow camera access.
 
@@ -32,10 +37,10 @@ Then visit **http://localhost:3000**, click **Play with camera**, and allow came
 ### Verify the physics
 
 ```sh
-npm test          # = node tests/simulate.mjs
+npm test          # = tsc (typecheck) + node tests/simulate.ts
 ```
 
-Runs the exact shipped physics headlessly: checks floor restitution against the NBA ball-inflation rule, sweeps flick strengths to prove a no-assist make window exists, and confirms aim assist can't rescue wild shots. Works as a CI gate.
+Runs the exact shipped physics headlessly (Node executes the TypeScript directly via native type stripping): checks floor restitution against the NBA ball-inflation rule, sweeps flick strengths to prove a no-assist make window exists, and confirms aim assist can't rescue wild shots. Works as a CI gate.
 
 ---
 
@@ -79,7 +84,7 @@ Runs the exact shipped physics headlessly: checks floor restitution against the 
 
 ## Physics
 
-Everything is SI units on a regulation court, tuned in [`src/config.js`](src/config.js) and validated by [`tests/simulate.mjs`](tests/simulate.mjs).
+Everything is SI units on a regulation court, tuned in [`src/config.ts`](src/config.ts) and validated by [`tests/simulate.ts`](tests/simulate.ts).
 
 | Quantity | Value | Source |
 |---|---|---|
@@ -94,11 +99,11 @@ Everything is SI units on a regulation court, tuned in [`src/config.js`](src/con
 
 **Integration:** semi-implicit Euler at a fixed **240 Hz** (decoupled from the render rate via an accumulator). At peak launch speed the ball moves ~5 cm per step against a 14 cm rim-contact envelope, so the rim torus can't tunnel; the thin backboard plane additionally checks the previous-position crossing.
 
-**Collisions** ([`src/physics/colliders.js`](src/physics/colliders.js)): impulse-based with restitution + Coulomb friction that **couples velocity and spin** through the hollow-sphere inertia — backspin checks up off the floor, grabs the rim, and climbs the glass, like a real ball. The rim is an exact torus test (closest point on the rim circle vs. sphere).
+**Collisions** ([`src/physics/colliders.ts`](src/physics/colliders.ts)): impulse-based with restitution + Coulomb friction that **couples velocity and spin** through the hollow-sphere inertia — backspin checks up off the floor, grabs the rim, and climbs the glass, like a real ball. The rim is an exact torus test (closest point on the rim circle vs. sphere).
 
-**Net** ([`src/physics/net.js`](src/physics/net.js)): 10 verlet strands × 5 rings with stretch-only rope constraints in a diamond mesh. The ball pushes the cords; a drag cone below the rim stands in for the cords slowing the ball (one-way coupling = unconditionally stable).
+**Net** ([`src/physics/net.ts`](src/physics/net.ts)): 10 verlet strands × 5 rings with stretch-only rope constraints in a diamond mesh. The ball pushes the cords; a drag cone below the rim stands in for the cords slowing the ball (one-way coupling = unconditionally stable).
 
-**The throw** ([`src/game/throwModel.js`](src/game/throwModel.js), [`src/game/flickMeter.js`](src/game/flickMeter.js)): your flick is measured in the hold plane in m/s — as the peak 90 ms window ending near the release, which compensates for the tracker reporting "hand opened" tens of milliseconds late. Upward flick sets arc *and* adds forward power and backspin; sideways flick aims and adds sidespin (which genuinely curves the flight). A regulation free throw needs ~7 m/s at ~52° — the make window in the simulation sits exactly there.
+**The throw** ([`src/game/throwModel.ts`](src/game/throwModel.ts), [`src/game/flickMeter.ts`](src/game/flickMeter.ts)): your flick is measured in the hold plane in m/s — as the peak 90 ms window ending near the release, which compensates for the tracker reporting "hand opened" tens of milliseconds late. Upward flick sets arc *and* adds forward power and backspin; sideways flick aims and adds sidespin (which genuinely curves the flight). A regulation free throw needs ~7 m/s at ~52° — the make window in the simulation sits exactly there.
 
 **Scoring detection:** the ball center must cross the rim plane downward inside the ring (interpolated between substeps); swish = no rim/board contact during the live shot.
 
@@ -109,24 +114,28 @@ Everything is SI units on a regulation court, tuned in [`src/config.js`](src/con
 ```
 index.html              shell + HUD markup (menus, scoreboard, help)
 styles/main.css         all styling — "midnight blacktop" theme tokens at the top
-src/
-  config.js             ⚙ every tunable constant, documented with units
-  main.js               composition root: wiring, mode flows, shortcuts
-  core/                 math (vec3), event emitter, fixed-timestep loop
+src/                    strict TypeScript, compiled to dist/ for the browser
+  config.ts             ⚙ every tunable constant, documented with units
+  main.ts               composition root: wiring, mode flows, shortcuts
+  core/                 math (vec3), typed event emitter, fixed-timestep loop
   physics/              ball, colliders, net, world  ← DOM-free, Node-importable
   game/                 game state machine, throw model, stats, HUD bridge
   input/                handInput (MediaPipe), pointerInput (mouse/touch)
   render/               pinhole camera, court art, ball/effects, renderer
   audio/                WebAudio-synthesized SFX (no sound files)
-tests/simulate.mjs      headless physics validation (npm test)
+tests/simulate.ts       headless physics validation (npm test)
+tools/serve.ts          zero-dep static dev server (npm start)
+tsconfig.json           typecheck config (src + tests + tools, noEmit)
+tsconfig.build.json     browser build: src/ → dist/ as plain ES modules
 ```
 
 Design rules the codebase follows:
 
 - **Physics is DOM-free** so it runs in Node — that's what makes `npm test` honest.
-- **Modules talk through a tiny event emitter**; input devices and the game know nothing about each other's internals. Adding a new controller (gamepad? keyboard-aim?) means emitting `down/move/up`-style events and ~20 lines in `main.js`.
-- **Every magic number lives in `config.js`** with units and rationale.
+- **Modules talk through a tiny typed event emitter**; input devices and the game know nothing about each other's internals. Adding a new controller (gamepad? keyboard-aim?) means emitting `down/move/up`-style events and ~20 lines in `main.ts`.
+- **Every magic number lives in `config.ts`** with units and rationale.
 - **No allocations in hot loops** — vec3 scratch registers are reused.
+- **TypeScript stays erasable** (`erasableSyntaxOnly`): no enums, namespaces or parameter properties, so Node can strip the types and run `tests/` and `tools/` directly — what ships to the browser and what runs in CI is the same code, not two toolchains.
 - The only runtime dependency, `@mediapipe/tasks-vision`, is version-pinned and loaded from CDN *only when camera mode is chosen*.
 
 ## Tuning cheatsheet
@@ -146,6 +155,7 @@ After touching physics or `THROW.*`, run `npm test` — the sweep printout shows
 ## Troubleshooting
 
 - **"Camera needs HTTPS or localhost"** — serve the folder (`npm start`); don't open `index.html` directly, and don't use a bare LAN IP over http.
+- **Blank page / 404 on `dist/main.js`** — the browser bundle hasn't been compiled; run `npm start` (or `npm run build`) once.
 - **Hand not detected** — more light, palm toward the lens, hand fully in frame, ~50–80 cm away. The PiP label tells you what the tracker sees.
 - **Ball releases while aiming** — exaggerate the pinch; the grab meter at the bottom of the PiP shows how solidly you're holding.
 - **Ball drops instead of throwing** — flick and open your hand in one motion (don't stop, then open). It's fine to flick right out of the frame — that still counts as a throw.

@@ -1,22 +1,32 @@
-import { NET, COURT } from '../config.js';
-import { v3, set, copy, sub, len, scale, addScaled, lerp } from '../core/math.js';
+import { NET, COURT } from '../config.ts';
+import { v3, copy, sub, len, scale, addScaled, lerp } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
+import type { Ball } from './ball.ts';
 
 const _delta = v3();
+
+interface NetNode {
+  pos: Vec3;
+  prev: Vec3;
+  pinned: boolean;
+}
 
 /**
  * Verlet-simulated net: STRANDS vertical strands of RINGS nodes hanging from
  * the rim, linked vertically and around each ring with rope constraints
  * (resist stretch only — slack rope, like real cord). The ball pushes nodes
- * outward; the net never pushes the ball (the cone-drag in world.js stands in
+ * outward; the net never pushes the ball (the cone-drag in world.ts stands in
  * for that), which keeps the coupled system unconditionally stable.
  */
 export class Net {
-  constructor() {
-    this.strands = NET.STRANDS;
-    this.rings = NET.RINGS;
-    /** @type {{pos: any, prev: any, pinned: boolean}[]} flat [strand * rings + ring] */
-    this.nodes = [];
+  strands = NET.STRANDS;
+  rings = NET.RINGS;
+  /** flat [strand * rings + ring] */
+  nodes: NetNode[] = [];
+  vRest: number;
+  ringRest: number[] = [];
 
+  constructor() {
     const c = COURT.RIM_CENTER;
     for (let s = 0; s < this.strands; s++) {
       const angle = (s / this.strands) * Math.PI * 2;
@@ -34,7 +44,6 @@ export class Net {
 
     // Rest lengths for vertical + ring-neighbor links.
     this.vRest = NET.DEPTH / (this.rings - 1);
-    this.ringRest = [];
     for (let k = 0; k < this.rings; k++) {
       const t = k / (this.rings - 1);
       const radius = COURT.RIM_RADIUS * lerp(1, NET.BOTTOM_RADIUS_SCALE, t);
@@ -42,11 +51,11 @@ export class Net {
     }
   }
 
-  node(s, k) {
+  node(s: number, k: number): NetNode {
     return this.nodes[s * this.rings + k];
   }
 
-  step(dt, ball) {
+  step(dt: number, ball: Ball): void {
     // Verlet integration.
     for (const n of this.nodes) {
       if (n.pinned) continue;
@@ -84,7 +93,7 @@ export class Net {
     }
   }
 
-  #rope(a, b, rest) {
+  #rope(a: NetNode, b: NetNode, rest: number): void {
     sub(_delta, b.pos, a.pos);
     const d = len(_delta);
     if (d <= rest || d < 1e-9) return;

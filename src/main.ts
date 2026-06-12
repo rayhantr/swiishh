@@ -3,18 +3,18 @@
  * owns the top-level flows (menu → mode select → play, error fallbacks,
  * pause, keyboard shortcuts). No gameplay logic lives here.
  */
-import { Loop } from './core/loop.js';
-import { World } from './physics/world.js';
-import { Renderer } from './render/renderer.js';
-import { HandInput } from './input/handInput.js';
-import { PointerInput } from './input/pointerInput.js';
-import { AudioEngine } from './audio/sounds.js';
-import { HUD } from './game/hud.js';
-import { Game } from './game/game.js';
+import { Loop } from './core/loop.ts';
+import { World } from './physics/world.ts';
+import { Renderer } from './render/renderer.ts';
+import { HandInput } from './input/handInput.ts';
+import { PointerInput } from './input/pointerInput.ts';
+import { AudioEngine } from './audio/sounds.ts';
+import { HUD } from './game/hud.ts';
+import { Game } from './game/game.ts';
 
-const canvas = document.getElementById('game');
-const video = document.getElementById('cam');
-const pipCanvas = document.getElementById('pipCanvas');
+const canvas = document.getElementById('game') as HTMLCanvasElement;
+const video = document.getElementById('cam') as HTMLVideoElement;
+const pipCanvas = document.getElementById('pipCanvas') as HTMLCanvasElement;
 
 const world = new World();
 const renderer = new Renderer(canvas);
@@ -22,8 +22,8 @@ const audio = new AudioEngine();
 const hud = new HUD();
 const game = new Game({ world, renderer, hud, audio });
 
-let handInput = null;     // created on demand — MediaPipe only loads if used
-let pointerInput = null;
+let handInput: HandInput | null = null;   // created on demand — MediaPipe only loads if used
+let pointerInput: PointerInput | null = null;
 
 // ── capability gating ─────────────────────────────────────────────────────
 if (!window.isSecureContext) {
@@ -35,7 +35,7 @@ if (!window.isSecureContext) {
 }
 
 // ── mode flows ────────────────────────────────────────────────────────────
-async function startCamera() {
+async function startCamera(): Promise<void> {
   audio.unlock();
   hud.el.btnCamera.disabled = true;
   hud.menuStatus('');
@@ -71,7 +71,7 @@ async function startCamera() {
   game.begin('camera');
 }
 
-function startPointer() {
+function startPointer(): void {
   audio.unlock();
   handInput?.stop();
   if (!pointerInput) {
@@ -85,11 +85,11 @@ function startPointer() {
   game.begin('pointer');
 }
 
-function detachPointer() {
+function detachPointer(): void {
   pointerInput?.detach();
 }
 
-function quitToMenu() {
+function quitToMenu(): void {
   game.quit();
   handInput?.stop();
   detachPointer();

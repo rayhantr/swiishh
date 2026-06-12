@@ -6,21 +6,22 @@ const STORE_KEY = 'swish.stats.v1';
  * instead of crashing.
  */
 export class Stats {
+  score = 0;
+  streak = 0;
+  bestStreak = 0;
+  attempts = 0;
+  makes = 0;
+  highScore = 0;
+
   constructor() {
-    this.score = 0;
-    this.streak = 0;
-    this.bestStreak = 0;
-    this.attempts = 0;
-    this.makes = 0;
-    this.highScore = 0;
     this.#load();
   }
 
-  registerAttempt() {
+  registerAttempt(): void {
     this.attempts++;
   }
 
-  registerMake(points) {
+  registerMake(points: number): boolean {
     this.makes++;
     this.streak++;
     this.score += points;
@@ -31,15 +32,15 @@ export class Stats {
     return isNewHigh;
   }
 
-  registerMiss() {
+  registerMiss(): void {
     this.streak = 0;
   }
 
-  get accuracy() {
+  get accuracy(): number {
     return this.attempts ? Math.round((this.makes / this.attempts) * 100) : 0;
   }
 
-  #load() {
+  #load(): void {
     try {
       const raw = localStorage.getItem(STORE_KEY);
       if (!raw) return;
@@ -49,7 +50,7 @@ export class Stats {
     } catch { /* storage unavailable — session-only stats */ }
   }
 
-  #save() {
+  #save(): void {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
         highScore: this.highScore,

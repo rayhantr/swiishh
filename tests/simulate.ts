@@ -1,5 +1,6 @@
 /**
- * Headless physics validation — run with `node tests/simulate.mjs`.
+ * Headless physics validation — run with `node tests/simulate.ts`
+ * (Node ≥ 22.18 strips the types natively; no build step needed).
  *
  * The physics modules are DOM-free on purpose so the exact code that ships
  * can be simulated here. This harness:
@@ -10,21 +11,22 @@
  *
  * Exits non-zero on failure, so it works as a CI gate.
  */
-import { PHYSICS, COURT, THROW, ASSIST } from '../src/config.js';
-import { World } from '../src/physics/world.js';
-import { computeLaunch } from '../src/game/throwModel.js';
-import { measureFlick } from '../src/game/flickMeter.js';
-import { v3 } from '../src/core/math.js';
+import { PHYSICS, THROW, ASSIST } from '../src/config.ts';
+import { World } from '../src/physics/world.ts';
+import { computeLaunch } from '../src/game/throwModel.ts';
+import { measureFlick } from '../src/game/flickMeter.ts';
+import { v3 } from '../src/core/math.ts';
+import type { Flick, HoldSample } from '../src/game/flickMeter.ts';
 
 const RELEASE = v3(0, 2.0, 0.15); // typical release point of a held ball
 
-function simulateShot(flick, assist) {
+function simulateShot(flick: Flick, assist: number) {
   const world = new World();
   world.ball.reset(RELEASE);
   const { vel, spin } = computeLaunch(flick, RELEASE, assist);
   world.launch(vel, spin);
 
-  let outcome = null;
+  let outcome: 'score' | 'miss' | null = null;
   let swish = false;
   let rim = false;
   let peak = 0;
@@ -41,7 +43,7 @@ function simulateShot(flick, assist) {
 }
 
 let failures = 0;
-const check = (label, ok, detail = '') => {
+const check = (label: string, ok: boolean, detail = ''): void => {
   console.log(`${ok ? '  ✓' : '  ✗'} ${label}${detail ? ` — ${detail}` : ''}`);
   if (!ok) failures++;
 };
@@ -66,7 +68,7 @@ const check = (label, ok, detail = '') => {
 // ── 2. raw physics sweep (assist = 0) ───────────────────────────────────
 {
   console.log('\nRaw flick sweep, no assist (flick m/s → outcome):');
-  const makes = [];
+  const makes: number[] = [];
   for (let f = 4.0; f <= 7.6; f += 0.2) {
     const r = simulateShot({ x: 0, y: f }, 0);
     const tag = r.outcome === 'score' ? (r.swish ? 'SWISH' : 'score') : r.outcome;
@@ -74,7 +76,7 @@ const check = (label, ok, detail = '') => {
     if (r.outcome === 'score') makes.push(f);
   }
   check('a make window exists without assist', makes.length >= 2,
-    makes.length ? `${makes[0].toFixed(1)}–${makes.at(-1).toFixed(1)} m/s` : 'none');
+    makes.length ? `${makes[0].toFixed(1)}–${makes.at(-1)!.toFixed(1)} m/s` : 'none');
 }
 
 // ── 3. camera-assist sweep ──────────────────────────────────────────────
@@ -115,8 +117,8 @@ const check = (label, ok, detail = '') => {
   const step = 1000 / HZ;
 
   // Build a hold-history trace from piecewise segments of {duration ms, vy m/s}.
-  const trace = (segments) => {
-    const h = [];
+  const trace = (segments: Array<[number, number]>) => {
+    const h: HoldSample[] = [];
     let t = 0, y = 1.2;
     for (const [ms, vy] of segments) {
       for (let i = 0; i < ms / step; i++) {

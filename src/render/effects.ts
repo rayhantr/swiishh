@@ -1,5 +1,25 @@
-import { RENDER } from '../config.js';
-import { v3 } from '../core/math.js';
+import { RENDER } from '../config.ts';
+import { v3 } from '../core/math.ts';
+import type { Vec3 } from '../core/math.ts';
+import { newProjected } from './camera.ts';
+import type { Camera } from './camera.ts';
+
+interface Particle {
+  pos: Vec3;
+  vel: Vec3;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+  spin: number;
+}
+
+interface PopText {
+  pos: Vec3;
+  text: string;
+  color: string;
+  t: number;
+}
 
 /**
  * Juice: ball trail, score confetti, floating text popups, screen flash.
@@ -7,23 +27,21 @@ import { v3 } from '../core/math.js';
  * stay glued to the court under resize.
  */
 export class Effects {
-  constructor() {
-    this.trail = [];      // {x,y,z}
-    this.particles = [];  // {pos, vel, life, maxLife, color, size, spin}
-    this.texts = [];      // {pos, text, color, t}
-    this.flash = 0;
-  }
+  trail: Vec3[] = [];
+  particles: Particle[] = [];
+  texts: PopText[] = [];
+  flash = 0;
 
-  pushTrail(pos) {
+  pushTrail(pos: Vec3): void {
     this.trail.push({ x: pos.x, y: pos.y, z: pos.z });
     if (this.trail.length > RENDER.TRAIL_LENGTH) this.trail.shift();
   }
 
-  clearTrail() {
+  clearTrail(): void {
     this.trail.length = 0;
   }
 
-  burst(pos, colors, count = 26) {
+  burst(pos: Vec3, colors: string[], count = 26): void {
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2;
       const speed = 1.4 + (i % 5) * 0.55;
@@ -39,15 +57,15 @@ export class Effects {
     }
   }
 
-  popText(pos, text, color = '#ffb454') {
+  popText(pos: Vec3, text: string, color = '#ffb454'): void {
     this.texts.push({ pos: v3(pos.x, pos.y, pos.z), text, color, t: 0 });
   }
 
-  flashScreen(strength = 0.18) {
+  flashScreen(strength = 0.18): void {
     this.flash = Math.max(this.flash, strength);
   }
 
-  update(dt) {
+  update(dt: number): void {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life += dt;
@@ -69,10 +87,10 @@ export class Effects {
     this.flash = Math.max(0, this.flash - dt * 0.9);
   }
 
-  drawTrail(ctx, cam, ballRadius) {
+  drawTrail(ctx: CanvasRenderingContext2D, cam: Camera, ballRadius: number): void {
     const n = this.trail.length;
     if (n < 2) return;
-    const pt = {};
+    const pt = newProjected();
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     for (let i = 0; i < n; i++) {
@@ -87,8 +105,8 @@ export class Effects {
     ctx.restore();
   }
 
-  drawParticles(ctx, cam) {
-    const pt = {};
+  drawParticles(ctx: CanvasRenderingContext2D, cam: Camera): void {
+    const pt = newProjected();
     for (const p of this.particles) {
       cam.project(p.pos, pt);
       if (!pt.visible) continue;
@@ -104,8 +122,8 @@ export class Effects {
     }
   }
 
-  drawTexts(ctx, cam) {
-    const pt = {};
+  drawTexts(ctx: CanvasRenderingContext2D, cam: Camera): void {
+    const pt = newProjected();
     for (const t of this.texts) {
       cam.project(t.pos, pt);
       if (!pt.visible) continue;
@@ -123,7 +141,7 @@ export class Effects {
     }
   }
 
-  drawFlash(ctx, w, h) {
+  drawFlash(ctx: CanvasRenderingContext2D, w: number, h: number): void {
     if (this.flash <= 0) return;
     ctx.fillStyle = `rgba(255, 196, 120, ${this.flash})`;
     ctx.fillRect(0, 0, w, h);
