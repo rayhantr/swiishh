@@ -22,7 +22,7 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
-createServer(async (req, res) => {
+const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x');
     let path = normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
@@ -39,6 +39,20 @@ createServer(async (req, res) => {
     res.writeHead(404, { 'content-type': 'text/plain' });
     res.end('not found');
   }
-}).listen(PORT, () => {
-  console.log(`SWISH dev server → http://localhost:${PORT}`);
+});
+
+// If the port is taken (another dev server, a previous run), walk up to the
+// next free one instead of crashing with EADDRINUSE.
+let port = PORT;
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE' && port < PORT + 20) {
+    console.log(`port ${port} is in use, trying ${port + 1}…`);
+    server.listen(++port);
+  } else {
+    throw err;
+  }
+});
+
+server.listen(port, () => {
+  console.log(`SWISH dev server → http://localhost:${port}`);
 });
