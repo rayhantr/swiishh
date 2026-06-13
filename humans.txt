@@ -1,0 +1,15 @@
+/* TEAM */
+  Creator: Rayhan
+  GitHub: @rayhantr
+  Site: https://github.com/rayhantr/swiishh
+
+/* SITE */
+  Last update: 2026-06-13
+  Language: English
+  Doctype: HTML5
+  Standards: HTML5, CSS3, TypeScript, Canvas 2D, WebAudio, MediaPipe Tasks Vision
+  Components: Zero runtime dependencies, no bundler, no binary game assets
+  Hand tracking: @mediapipe/tasks-vision (loaded from CDN only in camera mode)
+
+/* THANKS */
+  Players who let a webcam watch them mime free throws. 🏀

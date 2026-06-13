@@ -3,19 +3,182 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+
+  <!-- ── Primary SEO ─────────────────────────────────────────────────────── -->
+  <title>SWIISHH — Hand-Tracked Basketball Game in Your Browser</title>
+  <meta name="description" content="Play free-throw basketball with your hand: pinch, aim, and flick at your camera to shoot. Real ball physics in the browser — no install, no sign-up. Mouse & touch mode too." />
+  <link rel="canonical" href="https://swiishh.sindbug.com/" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="keywords" content="basketball game, hand tracking, gesture game, browser game, free throw, webcam game, MediaPipe, no install, web game, HTML5 game" />
+  <meta name="author" content="Rayhan" />
+  <meta name="application-name" content="SWIISHH" />
+  <meta name="generator" content="TypeScript, hand-built (no bundler)" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="rating" content="General" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <!-- ── Theme / platform ────────────────────────────────────────────────── -->
+  <meta name="color-scheme" content="dark light" />
   <meta name="theme-color" content="#0c0e13" />
-  <title>SWIISHH — hand-tracked streetball</title>
-  <meta name="description" content="A free-throw game you play by pinching and flicking your hand in front of your camera. Real ball physics, zero install." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="SWIISHH" />
+  <meta name="msapplication-TileColor" content="#0c0e13" />
+  <meta name="msapplication-config" content="/browserconfig.xml" />
+
+  <!-- ── Open Graph (Facebook / LinkedIn / Slack / Discord / iMessage) ────── -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="SWIISHH" />
+  <meta property="og:title" content="SWIISHH — hand-tracked streetball" />
+  <meta property="og:description" content="Play free-throw basketball with your hand: pinch, aim, and flick at your camera to shoot. Real ball physics in the browser — no install, no sign-up." />
+  <meta property="og:url" content="https://swiishh.sindbug.com/" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:image" content="https://swiishh.sindbug.com/og-image.png" />
+  <meta property="og:image:secure_url" content="https://swiishh.sindbug.com/og-image.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="The SWIISHH wordmark beside a glowing basketball on a midnight blacktop court." />
+
+  <!-- ── Twitter / X large card ──────────────────────────────────────────── -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SWIISHH — hand-tracked streetball" />
+  <meta name="twitter:description" content="Play free-throw basketball with your hand — pinch, aim, and flick at your camera to shoot. Real ball physics in the browser, no install." />
+  <meta name="twitter:image" content="https://swiishh.sindbug.com/og-image.png" />
+  <meta name="twitter:image:alt" content="The SWIISHH wordmark beside a glowing basketball on a midnight blacktop court." />
+
+  <!-- ── Icons / manifest ────────────────────────────────────────────────── -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="mask-icon" href="/favicon.svg" color="#ff6a3d" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- ── Resource hints ──────────────────────────────────────────────────── -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- MediaPipe hand-tracking model + runtime, fetched only when camera mode starts -->
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="dns-prefetch" href="https://storage.googleapis.com" />
+
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles/main.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='42' fill='%23f0691f'/><path d='M8 50h84M50 8v84' stroke='%233c1608' stroke-width='5' fill='none'/></svg>" />
+
+  <!-- ── Structured data (Schema.org JSON-LD) ────────────────────────────── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "VideoGame",
+        "@id": "https://swiishh.sindbug.com/#game",
+        "name": "SWIISHH",
+        "alternateName": "SWIISHH — hand-tracked streetball",
+        "url": "https://swiishh.sindbug.com/",
+        "description": "Play free-throw basketball with your hand: pinch, aim, and flick at your camera to shoot. Real ball physics in the browser — no install, no sign-up.",
+        "image": "https://swiishh.sindbug.com/og-image.png",
+        "screenshot": "https://swiishh.sindbug.com/og-image.png",
+        "inLanguage": "en",
+        "datePublished": "2026-06-12",
+        "softwareVersion": "1.0.0",
+        "applicationCategory": "GameApplication",
+        "genre": ["Sports", "Arcade"],
+        "gamePlatform": "Web browser",
+        "operatingSystem": "Any modern web browser (Canvas + WebAudio; camera mode needs a webcam)",
+        "browserRequirements": "Requires JavaScript. Camera mode needs a webcam and a secure (HTTPS) context.",
+        "playMode": "https://schema.org/SinglePlayer",
+        "license": "https://opensource.org/licenses/MIT",
+        "isAccessibleForFree": true,
+        "author": { "@id": "https://swiishh.sindbug.com/#rayhan" },
+        "publisher": { "@id": "https://swiishh.sindbug.com/#rayhan" },
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://swiishh.sindbug.com/#website",
+        "url": "https://swiishh.sindbug.com/",
+        "name": "SWIISHH",
+        "description": "Hand-tracked free-throw basketball you play in the browser.",
+        "inLanguage": "en",
+        "publisher": { "@id": "https://swiishh.sindbug.com/#rayhan" }
+      },
+      {
+        "@type": "Person",
+        "@id": "https://swiishh.sindbug.com/#rayhan",
+        "name": "Rayhan",
+        "url": "https://github.com/rayhantr"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://swiishh.sindbug.com/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How do you play SWIISHH?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Show your hand to the camera, pinch (thumb and index) or make a fist to grab the ball, move your hand to aim, then flick upward and open your hand to shoot. Flick speed sets the power; a higher arc is more forgiving."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Do I need to install anything or sign up?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. SWIISHH runs entirely in your web browser — no download, no account, and no plugins. Open the page and play."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I play without a webcam?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes. There is a full mouse and touch mode: press the ball, drag to aim, and flick upward to release. No camera required."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is my camera video uploaded anywhere?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Hand tracking runs locally in your browser using MediaPipe; the camera feed never leaves your device and nothing is recorded or uploaded."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How is scoring calculated?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "A clean swish is worth 3 points; a basket off the rim or backboard is worth 2. Streaks, accuracy, and your high score are saved locally in your browser."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <canvas id="game" aria-label="Basketball court"></canvas>
   <!-- hidden camera feed consumed by MediaPipe; the PiP canvas is its visible face -->
   <video id="cam" playsinline muted aria-hidden="true"></video>
+
+  <noscript>
+    <div style="position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px;background:#0c0e13;color:#f0ebe0;font-family:'IBM Plex Mono',monospace;z-index:9999">
+      <div style="max-width:42ch">
+        <h1 style="font-family:'Bungee',sans-serif;color:#ff6a3d">SWIISHH</h1>
+        <p><strong>SWIISHH</strong> is a hand-tracked free-throw basketball game you play in your browser — pinch, aim, and flick your hand at the camera to shoot, with real ball physics. A mouse &amp; touch mode works without a camera.</p>
+        <p>This game needs JavaScript. Please enable it and reload to play.</p>
+      </div>
+    </div>
+  </noscript>
 
   <div id="hud">
     <!-- top chrome -->

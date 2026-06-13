@@ -1,0 +1,5 @@
+# https://swiishh.sindbug.com/.well-known/security.txt  (RFC 9116)
+Contact: mailto:rayhan@alt.sa.com
+Expires: 2027-06-13T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://swiishh.sindbug.com/.well-known/security.txt

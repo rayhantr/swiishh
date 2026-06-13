@@ -1,16 +1,49 @@
-# 🏀 SWIISHH — hand-tracked streetball
+<div align="center">
 
-A free-throw basketball game you play by **pinching and flicking your hand in front of your laptop or phone camera**. Midnight-blacktop vibes, regulation-spec court, and a ball that flies on real aerodynamics — drag, Magnus lift from backspin, spin-coupled bounces.
+# 🏀 SWIISHH
 
-Written in strict TypeScript with zero runtime dependencies and no binary assets. The only build step is `tsc` compiling `src/` → `dist/` for the browser (`npm start` does it for you); tests and the dev server run their TypeScript directly on Node ≥ 22.18 — no bundler anywhere.
+### Hand-tracked streetball you play with a flick of your wrist
+
+Pinch and flick your hand in front of your webcam to shoot free throws on a midnight blacktop —
+with a ball that flies on **real aerodynamics**: drag, Magnus lift from backspin, and spin-coupled bounces.
+
+[**▶&nbsp; Play it live**](https://swiishh.sindbug.com/) &nbsp;·&nbsp; [Quick start](#quick-start) &nbsp;·&nbsp; [How it's played](#how-its-played-all-the-inputs) &nbsp;·&nbsp; [Physics](#physics)
+
+[![Play live](https://img.shields.io/badge/play-swiishh.sindbug.com-1d9bf0?style=flat-square)](https://swiishh.sindbug.com/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-3da639?style=flat-square)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)](tsconfig.json)
+![Runtime deps: 0](https://img.shields.io/badge/runtime%20deps-0-2ea043?style=flat-square)
+![Bundler: none](https://img.shields.io/badge/bundler-none-8957e5?style=flat-square)
+
+<img src="og-image.png" alt="SWIISHH — hand-tracked basketball in the browser" width="640">
+
+</div>
+
+---
+
+Written in **strict TypeScript** with **zero runtime dependencies** and no binary build step. `tsc` compiles
+`src/` → `dist/` for the browser (`npm start` does it for you); tests and the dev server run their TypeScript
+directly on Node ≥ 22.18 — **no bundler anywhere**.
 
 ```
 pinch (or fist) ──▶ grab the ball
-move your hand ──▶ aim
+move your hand  ──▶ aim
 flick up + open ──▶ shoot
 ```
 
 No camera? No problem — there's a full **mouse & touch mode** (press the ball, drag, flick up).
+
+## Contents
+
+- [Quick start](#quick-start) · [Verify the physics](#verify-the-physics)
+- [How it's played](#how-its-played-all-the-inputs)
+- [Edge cases covered](#edge-cases-covered)
+- [Physics](#physics)
+- [Repo tour](#repo-tour)
+- [Tuning cheatsheet](#tuning-cheatsheet)
+- [Troubleshooting](#troubleshooting)
+- [SEO, sharing & deployment](#seo-sharing--deployment)
+- [License](#license)
 
 ---
 
@@ -125,8 +158,14 @@ src/                    strict TypeScript, compiled to dist/ for the browser
   audio/                WebAudio-synthesized SFX (no sound files)
 tests/simulate.ts       headless physics validation (npm test)
 tools/serve.ts          zero-dep static dev server (npm start)
+tools/build.ts          assembles the deployable site into public/ (npm run build)
+tools/make-assets.ts    rasterises favicons / PWA icons / OG card (npm run assets)
 tsconfig.json           typecheck config (src + tests + tools, noEmit)
 tsconfig.build.json     browser build: src/ → dist/ as plain ES modules
+
+robots.txt · sitemap.xml · site.webmanifest · browserconfig.xml · humans.txt
+.well-known/security.txt · 404.html · CNAME      crawler / install / discovery
+favicon.* · *-icon*.png · icon-*.png · og-image.png   generated share & app icons
 ```
 
 Design rules the codebase follows:
@@ -161,6 +200,47 @@ After touching physics or `THROW.*`, run `npm test` — the sweep printout shows
 - **Ball drops instead of throwing** — flick and open your hand in one motion (don't stop, then open). It's fine to flick right out of the frame — that still counts as a throw.
 - **Choppy on an old laptop** — close other tabs using the camera/GPU; tracking is the heavy part, the game itself is cheap. The GPU→CPU fallback is automatic.
 - **Shots feel impossible** — that's regulation physics 🙂 keep aim assist on, and aim for a high arc (~52°).
+
+## SEO, sharing & deployment
+
+The site ships a complete discovery layer so it indexes well and unfurls into a
+rich card anywhere it's pasted. Canonical origin: **https://swiishh.sindbug.com/**.
+
+**In `index.html` `<head>`:**
+- Search basics — keyword-led `<title>`/`description`, `canonical`, `robots`/`googlebot` (with `max-image-preview:large`), `author`, `color-scheme`, theme color.
+- **Open Graph** + **Twitter `summary_large_image`** — title, description, URL, locale, and a 1200×630 PNG with explicit dimensions and alt text, so Facebook / LinkedIn / Slack / Discord / iMessage / X all render the card.
+- Apple / Android / Windows install meta + `<link rel="manifest">`, icon set, and `mask-icon`.
+- **Schema.org JSON-LD** (`@graph`): `VideoGame` (free offer, platform, single-player, MIT), `WebSite`, `Person`, and a `FAQPage` (play / install / camera / privacy / scoring).
+- A `<noscript>` description so the page says something useful without JS.
+
+**Root files:** `robots.txt` (+ `Sitemap:`), `sitemap.xml` (with image), `site.webmanifest` (installable PWA — name, icons incl. maskable, screenshot, categories), `browserconfig.xml`, `humans.txt`, `.well-known/security.txt` (RFC 9116), a themed `404.html`, and `CNAME` for the custom domain.
+
+### Regenerating the icons & social card
+
+```sh
+npm run assets     # SVG masters in tools/make-assets.ts → favicon/PWA/OG PNGs
+```
+
+The brand mark and OG card are defined as **SVG in `tools/make-assets.ts`** (the
+source of truth) and rasterised by a headless Chromium already on the machine —
+**zero new dependencies**. The resulting PNGs/ICO are committed (the static host
+can't rasterise SVG at deploy time); rerun the command whenever the mark changes.
+
+### Build & deploy
+
+```sh
+npm run build      # tsc → dist/, then tools/build.ts assembles everything into public/
+```
+
+`public/` is the deploy root (Vercel's default; works on any static host). It
+contains `index.html`, `styles/`, `dist/`, and every SEO/icon file above, so each
+resolves at the site root (`/robots.txt`, `/og-image.png`, …). `npm start` serves
+the repo root locally with the correct content types and the same `404.html`.
+
+> **Changing the domain?** Update the absolute URLs in `index.html` (`canonical`,
+> `og:*`, `twitter:*`, JSON-LD), `robots.txt`, `sitemap.xml`, `site.webmanifest`,
+> `.well-known/security.txt`, `CNAME`, and `package.json`'s `homepage`, then
+> `npm run assets` to refresh the URL printed on the card.
 
 ## License
 

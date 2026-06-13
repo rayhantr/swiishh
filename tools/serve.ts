@@ -17,8 +17,12 @@ const MIME: Record<string, string> = {
   '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
+  '.txt': 'text/plain; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.wasm': 'application/wasm',
 };
@@ -37,8 +41,15 @@ const server = createServer(async (req, res) => {
     });
     res.end(body);
   } catch {
-    res.writeHead(404, { 'content-type': 'text/plain' });
-    res.end('not found');
+    // Serve the on-brand 404 page (parity with GitHub Pages), plain text if absent.
+    try {
+      const body = await readFile(join(ROOT, '404.html'));
+      res.writeHead(404, { 'content-type': MIME['.html'], 'cache-control': 'no-cache' });
+      res.end(body);
+    } catch {
+      res.writeHead(404, { 'content-type': MIME['.txt'] });
+      res.end('not found');
+    }
   }
 });
 

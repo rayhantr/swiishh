@@ -1,0 +1,12 @@
+# robots.txt — https://swiishh.sindbug.com/robots.txt
+# SWIISHH is a public, fully-indexable single-page game. Crawl freely.
+
+User-agent: *
+Allow: /
+
+# Build/source folders carry no indexable content — keep them out of results.
+Disallow: /src/
+Disallow: /tools/
+Disallow: /tests/
+
+Sitemap: https://swiishh.sindbug.com/sitemap.xml
