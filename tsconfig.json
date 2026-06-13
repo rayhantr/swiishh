@@ -1,6 +1,6 @@
 {
   // Type-checking config for the whole repo (src + tests + tools).
-  // `npm run typecheck` uses this; the browser build uses tsconfig.build.json.
+  // `yarn typecheck` uses this; the browser build uses tsconfig.build.json.
   //
   // Imports use explicit `.ts` extensions so Node ≥ 22.18 can run tests and
   // tools directly via native type stripping — no build step outside the

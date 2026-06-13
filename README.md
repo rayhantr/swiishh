@@ -22,7 +22,7 @@ with a ball that flies on **real aerodynamics**: drag, Magnus lift from backspin
 ---
 
 Written in **strict TypeScript** with **zero runtime dependencies** and no binary build step. `tsc` compiles
-`src/` → `dist/` for the browser (`npm start` does it for you); tests and the dev server run their TypeScript
+`src/` → `dist/` for the browser (`yarn start` does it for you); tests and the dev server run their TypeScript
 directly on Node ≥ 22.18 — **no bundler anywhere**.
 
 ```
@@ -52,16 +52,16 @@ No camera? No problem — there's a full **mouse & touch mode** (press the ball,
 Camera access requires a **secure context** (HTTPS or `localhost`), so open the folder through any static server rather than double-clicking `index.html`:
 
 ```sh
-npm install        # dev-only: typescript + @types/node
-npm start          # compiles src/ → dist/, then serves on port 3000 (zero-dep server in tools/serve.ts)
+yarn install       # dev-only: typescript + @types/node
+yarn start         # compiles src/ → dist/, then serves on port 3000 (zero-dep server in tools/serve.ts)
 
 # or build once and use any static server:
-npm run build
+yarn build
 npx serve -l 3000 .
 python -m http.server 3000
 ```
 
-`npm run watch` keeps `tsc` recompiling on save while a server is running.
+`yarn watch` keeps `tsc` recompiling on save while a server is running.
 
 Then visit **http://localhost:3000**, click **Play with camera**, and allow camera access.
 
@@ -70,7 +70,7 @@ Then visit **http://localhost:3000**, click **Play with camera**, and allow came
 ### Verify the physics
 
 ```sh
-npm test          # = tsc (typecheck) + node tests/simulate.ts
+yarn test         # = tsc (typecheck) + node tests/simulate.ts
 ```
 
 Runs the exact shipped physics headlessly (Node executes the TypeScript directly via native type stripping): checks floor restitution against the NBA ball-inflation rule, sweeps flick strengths to prove a no-assist make window exists, and confirms aim assist can't rescue wild shots. Works as a CI gate.
@@ -189,12 +189,12 @@ Design rules the codebase follows:
 | Move the camera/view | `RENDER.CAM_POS`, `RENDER.HORIZON` |
 | Debug overlay (FPS, ball state) | append `?debug` to the URL |
 
-After touching physics or `THROW.*`, run `npm test` — the sweep printout shows exactly how the make window moved.
+After touching physics or `THROW.*`, run `yarn test` — the sweep printout shows exactly how the make window moved.
 
 ## Troubleshooting
 
-- **"Camera needs HTTPS or localhost"** — serve the folder (`npm start`); don't open `index.html` directly, and don't use a bare LAN IP over http.
-- **Blank page / 404 on `dist/main.js`** — the browser bundle hasn't been compiled; run `npm start` (or `npm run build`) once.
+- **"Camera needs HTTPS or localhost"** — serve the folder (`yarn start`); don't open `index.html` directly, and don't use a bare LAN IP over http.
+- **Blank page / 404 on `dist/main.js`** — the browser bundle hasn't been compiled; run `yarn start` (or `yarn build`) once.
 - **Hand not detected** — more light, palm toward the lens, hand fully in frame, ~50–80 cm away. The PiP label tells you what the tracker sees.
 - **Ball releases while aiming** — exaggerate the pinch; the grab meter at the bottom of the PiP shows how solidly you're holding.
 - **Ball drops instead of throwing** — flick and open your hand in one motion (don't stop, then open). It's fine to flick right out of the frame — that still counts as a throw.
@@ -218,7 +218,7 @@ rich card anywhere it's pasted. Canonical origin: **https://swiishh.sindbug.com/
 ### Regenerating the icons & social card
 
 ```sh
-npm run assets     # SVG masters in tools/make-assets.ts → favicon/PWA/OG PNGs
+yarn assets        # SVG masters in tools/make-assets.ts → favicon/PWA/OG PNGs
 ```
 
 The brand mark and OG card are defined as **SVG in `tools/make-assets.ts`** (the
@@ -229,7 +229,7 @@ can't rasterise SVG at deploy time); rerun the command whenever the mark changes
 ### Build & deploy
 
 ```sh
-npm run build      # tsc → dist/, then tools/build.ts assembles everything into public/
+yarn build         # tsc → dist/, then tools/build.ts assembles everything into public/
 ```
 
 `public/` is the deploy root (Vercel's default; works on any static host). It
@@ -240,7 +240,7 @@ the repo root locally with the correct content types and the same `404.html`.
 > **Changing the domain?** Update the absolute URLs in `index.html` (`canonical`,
 > `og:*`, `twitter:*`, JSON-LD), `robots.txt`, `sitemap.xml`, `site.webmanifest`,
 > `.well-known/security.txt`, `CNAME`, and `package.json`'s `homepage`, then
-> `npm run assets` to refresh the URL printed on the card.
+> `yarn assets` to refresh the URL printed on the card.
 
 ## License
 

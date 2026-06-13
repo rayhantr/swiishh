@@ -1,5 +1,5 @@
 /**
- * Zero-dependency static dev server — `npm start` works offline.
+ * Zero-dependency static dev server — `yarn start` works offline.
  * Serves the repo root on http://localhost:3000 (PORT env to change).
  * Run directly with `node tools/serve.ts` (Node ≥ 22.18 strips the types).
  */

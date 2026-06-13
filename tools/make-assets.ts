@@ -1,7 +1,7 @@
 /**
  * Generates every favicon / PWA / social-share image from inline SVG masters.
  *
- *   npm run assets
+ *   yarn assets
  *
  * The SVG below is the single source of truth (version-controlled, on-brand with
  * styles/main.css). PNGs are rasterised by a headless Chromium (Edge or Chrome —
@@ -39,7 +39,7 @@ function findBrowser(): string {
     try { readFileSync(p); return p; } catch { /* keep looking */ }
   }
   throw new Error(
-    'No Chromium found. Set CHROME=/path/to/chrome (or EDGE=…) and re-run `npm run assets`.',
+    'No Chromium found. Set CHROME=/path/to/chrome (or EDGE=…) and re-run `yarn assets`.',
   );
 }
 

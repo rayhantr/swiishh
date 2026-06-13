@@ -10,8 +10,8 @@
     "watch": "tsc -p tsconfig.build.json --watch",
     "typecheck": "tsc",
     "assets": "node --disable-warning=ExperimentalWarning tools/make-assets.ts",
-    "start": "npm run build && node --disable-warning=ExperimentalWarning tools/serve.ts",
-    "test": "npm run typecheck && node --disable-warning=ExperimentalWarning tests/simulate.ts"
+    "start": "yarn build && node --disable-warning=ExperimentalWarning tools/serve.ts",
+    "test": "yarn typecheck && node --disable-warning=ExperimentalWarning tests/simulate.ts"
   },
   "keywords": [
     "basketball",
@@ -25,8 +25,10 @@
   ],
   "author": "Rayhan",
   "license": "MIT",
+  "packageManager": "yarn@1.22.22",
   "engines": {
-    "node": "22.x"
+    "node": "22.x",
+    "yarn": "1.x"
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
