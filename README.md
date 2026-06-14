@@ -248,4 +248,4 @@ the repo root locally with the correct content types and the same `404.html`.
 
 ---
 
-<p align="center">Bugged by <img src="SINDBUG.gif" alt="SINDBUG" height="24"></p>
+<p align="center">Bugged by <a href="https://sindbug.com"><img src="SINDBUG.gif" alt="SINDBUG" height="24"></a></p>
