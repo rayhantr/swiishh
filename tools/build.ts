@@ -30,6 +30,8 @@ const ASSETS = [
   'favicon.ico', 'favicon.svg', 'favicon-16.png', 'favicon-32.png',
   'apple-touch-icon.png', 'icon-192.png', 'icon-512.png',
   'icon-maskable-512.png', 'og-image.png',
+  // attribution mark shown in the menu + README
+  'SINDBUG.gif',
   // custom-domain marker — used by GitHub Pages, harmless elsewhere
   'CNAME',
 ];

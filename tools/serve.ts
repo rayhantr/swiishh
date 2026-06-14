@@ -22,6 +22,7 @@ const MIME: Record<string, string> = {
   '.txt': 'text/plain; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.gif': 'image/gif',
   '.webp': 'image/webp',
   '.ico': 'image/x-icon',
   '.wasm': 'application/wasm',
